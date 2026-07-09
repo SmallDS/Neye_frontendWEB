@@ -13,9 +13,8 @@ const formSchema = computed((): VbenFormSchema[] => [
   {
     component: 'VbenInput',
     componentProps: {
-      placeholder: 'admin',
+      placeholder: '请输入账号',
     },
-    defaultValue: 'admin',
     fieldName: 'username',
     label: 'Username',
     rules: z.string().min(1, { message: 'Username is required' }),
@@ -23,9 +22,8 @@ const formSchema = computed((): VbenFormSchema[] => [
   {
     component: 'VbenInputPassword',
     componentProps: {
-      placeholder: 'Admin123456',
+      placeholder: '请输入密码',
     },
-    defaultValue: 'Admin123456',
     fieldName: 'password',
     label: 'Password',
     rules: z.string().min(1, { message: 'Password is required' }),
