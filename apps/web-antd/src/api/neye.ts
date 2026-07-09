@@ -1,6 +1,9 @@
+import { useAppConfig } from '@vben/hooks';
 import { useAccessStore } from '@vben/stores';
 
-const API_BASE_URL = import.meta.env.VITE_NEYE_API_BASE_URL || '/api';
+const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
+const API_BASE_URL =
+  apiURL || import.meta.env.VITE_NEYE_API_BASE_URL || '/api';
 
 export class NeyeApiError extends Error {
   constructor(
