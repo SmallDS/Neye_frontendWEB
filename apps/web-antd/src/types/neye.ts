@@ -16,10 +16,13 @@ export interface PageResult<T> {
 export interface CurrentUser {
   id: string;
   tenantId?: null | string;
+  tenantIds: string[];
   username: string;
   displayName: string;
   role: UserRole;
-  tenant?: { code: string; id: string; name: string };
+  tenant?: { code: string; id: string; name: string; status: TenantStatus };
+  tenants: Array<Tenant & { assignedAt: string }>;
+  wechatBound: boolean;
 }
 
 export interface LoginResult {
@@ -38,6 +41,17 @@ export interface Tenant {
   updatedAt?: string;
 }
 
+
+export interface Account {
+  id: string;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  status: UserStatus;
+  tenants: Array<Tenant & { assignedAt: string }>;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface TenantUser {
   id: string;
@@ -116,6 +130,8 @@ export interface Customer {
   tenantId: string;
   customerNo: string;
   name: string;
+  namePinyin?: null | string;
+  nameInitials?: null | string;
   phone?: null | string;
   gender: Gender;
   age?: null | number;

@@ -60,5 +60,11 @@ vite.config.ts.*
 skills-lock.json
 .atomcode
 datalog
-.env*
-!.env.example
+
+# Project runtime environment files
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+*.code-workspace

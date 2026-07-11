@@ -11,16 +11,16 @@
     "scripts/*/src/**/*.ts",
     "scripts/*/src/**/*.json"
   ],
-  "globalEnv": ["NODE_ENV", "VITE_GLOB_API_URL", "VITE_NEYE_API_BASE_URL", "VITE_ROUTER_HISTORY"],
+  "globalEnv": [
+    "NODE_ENV",
+    "VITE_GLOB_API_URL",
+    "VITE_NEYE_API_BASE_URL",
+    "VITE_ROUTER_HISTORY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [
-        "dist/**",
-        "dist.zip",
-        ".vitepress/dist.zip",
-        ".vitepress/dist/**"
-      ]
+      "outputs": ["dist/**", "dist.zip"]
     },
     "preview": {
       "dependsOn": ["^build"],
@@ -29,10 +29,6 @@
     "build:analyze": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
-    },
-    "@vben/backend-mock#build": {
-      "dependsOn": ["^build"],
-      "outputs": [".nitro/**", ".output/**"]
     },
     "test:e2e": {},
     "dev": {

@@ -23,93 +23,89 @@ export const useAuthStore = defineStore('auth', () => {
   const userStore = useUserStore();
   const tabbarStore = useTabbarStore();
   const router = useRouter();
-
   const loginLoading = ref(false);
 
   function resetSessionTabs() {
     tabbarStore.$reset();
     for (const key of Object.keys(sessionStorage)) {
-      if (key.endsWith('-core-tabbar')) {
-        sessionStorage.removeItem(key);
-      }
+      if (key.endsWith('-core-tabbar')) sessionStorage.removeItem(key);
     }
   }
 
-  /**
-   * 异步处理登录操作
-   * Asynchronously handle the login process
-   * @param params 登录表单数据
-   */
+  async function completeLogin(
+    accessToken: string,
+    onSuccess?: () => Promise<void> | void,
+  ) {
+    accessStore.setAccessToken(accessToken);
+    window.localStorage.removeItem('neye.selectedTenantId');
+
+    const [userInfo, accessCodes] = await Promise.all([
+      fetchUserInfo(),
+      getAccessCodesApi(),
+    ]);
+    userStore.setUserInfo(userInfo);
+    accessStore.setAccessCodes(accessCodes);
+    resetSessionTabs();
+
+    if (accessStore.loginExpired) {
+      accessStore.setLoginExpired(false);
+    } else {
+      onSuccess
+        ? await onSuccess()
+        : await router.push(
+            userInfo.homePath || preferences.app.defaultHomePath,
+          );
+    }
+
+    if (userInfo.realName) {
+      notification.success({
+        description: `${$t('authentication.loginSuccessDesc')}:${userInfo.realName}`,
+        duration: 3,
+        message: $t('authentication.loginSuccess'),
+      });
+    }
+    return userInfo;
+  }
+
   async function authLogin(
     params: Recordable<any>,
     onSuccess?: () => Promise<void> | void,
   ) {
-    // 异步处理用户登录操作并获取 accessToken
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { accessToken } = await loginApi(params);
-
-      // 如果成功获取到 accessToken
-      if (accessToken) {
-        accessStore.setAccessToken(accessToken);
-
-        // 获取用户信息并存储到 accessStore 中
-        const [fetchUserInfoResult, accessCodes] = await Promise.all([
-          fetchUserInfo(),
-          getAccessCodesApi(),
-        ]);
-
-        userInfo = fetchUserInfoResult;
-
-        userStore.setUserInfo(userInfo);
-        accessStore.setAccessCodes(accessCodes);
-        resetSessionTabs();
-
-        if (accessStore.loginExpired) {
-          accessStore.setLoginExpired(false);
-        } else {
-          onSuccess
-            ? await onSuccess?.()
-            : await router.push(
-                userInfo.homePath || preferences.app.defaultHomePath,
-              );
-        }
-
-        if (userInfo?.realName) {
-          notification.success({
-            description: `${$t('authentication.loginSuccessDesc')}:${userInfo?.realName}`,
-            duration: 3,
-            message: $t('authentication.loginSuccess'),
-          });
-        }
+      const result = await loginApi(params);
+      if (result.accessToken) {
+        userInfo = await completeLogin(result.accessToken, onSuccess);
       }
     } finally {
       loginLoading.value = false;
     }
+    return { userInfo };
+  }
 
-    return {
-      userInfo,
-    };
+  async function authLoginWithToken(accessToken: string) {
+    try {
+      loginLoading.value = true;
+      return await completeLogin(accessToken);
+    } finally {
+      loginLoading.value = false;
+    }
   }
 
   async function logout(redirect: boolean = true) {
     try {
       await logoutApi();
     } catch {
-      // 不做任何处理
+      // The API currently uses stateless JWTs.
     }
     resetAllStores();
     resetSessionTabs();
     accessStore.setLoginExpired(false);
-
-    // 回登录页带上当前路由地址
     await router.replace({
       path: LOGIN_PATH,
       query: redirect
-        ? {
-            redirect: encodeURIComponent(router.currentRoute.value.fullPath),
-          }
+        ? { redirect: encodeURIComponent(router.currentRoute.value.fullPath) }
         : {},
     });
   }
@@ -127,6 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     $reset,
     authLogin,
+    authLoginWithToken,
     fetchUserInfo,
     loginLoading,
     logout,

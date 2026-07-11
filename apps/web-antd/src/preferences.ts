@@ -16,8 +16,13 @@ interface WebAntdPreferencesExtension {
  */
 export const overridesPreferences = defineOverridesPreferences({
   app: {
-    defaultHomePath: '/neye/system/tenants',
+    defaultAvatar: '/favicon.ico',
+    defaultHomePath: '/neye/customers',
     name: 'NEye Admin',
+  },
+  logo: {
+    source: '/favicon.ico',
+    sourceDark: '/favicon.ico',
   },
   copyright: {
     companyName: 'NEye',

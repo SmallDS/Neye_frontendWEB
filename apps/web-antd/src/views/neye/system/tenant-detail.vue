@@ -1,55 +1,68 @@
 <script setup lang="ts">
 defineOptions({ name: 'NEyeTenantDetail' });
+
 import { computed, h, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+
+import {
+  DeleteOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons-vue';
 import { Modal, message } from 'ant-design-vue';
-import { DeleteOutlined, KeyOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
-import { apiRequest, cleanPayload } from '#/api/neye';
-import type { TenantDetail, TenantUser, UserStatus } from '#/types/neye';
+
+import { apiRequest } from '#/api/neye';
+import type {
+  Account,
+  PageResult,
+  TenantDetail,
+  TenantUser,
+} from '#/types/neye';
 import { formatDate, money, tenantStatusText } from '#/utils/neye-format';
 
 const route = useRoute();
 const router = useRouter();
 const tenantId = computed(() => String(route.params.id));
 const loading = ref(false);
+const accountLoading = ref(false);
 const accountOpen = ref(false);
-const userPasswordOpen = ref(false);
-const detail = ref<TenantDetail | null>(null);
-const passwordUser = ref<TenantUser | null>(null);
-const accountForm = reactive({ username: '', password: 'Shop123456', displayName: '' });
-const userPasswordForm = reactive({ password: 'Shop123456' });
+const detail = ref<null | TenantDetail>(null);
+const availableAccounts = ref<Account[]>([]);
+const accountForm = reactive({ userId: '' });
 const accountColumns = [
-  { title: '账号', dataIndex: 'username', key: 'username' },
-  { title: '姓名', dataIndex: 'displayName', key: 'displayName' },
-  { title: '角色', dataIndex: 'role', key: 'role', width: 90 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
-  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 130 },
-  { title: '操作', key: 'action', width: 180 },
+  { dataIndex: 'username', key: 'username', title: '账号' },
+  { dataIndex: 'displayName', key: 'displayName', title: '姓名' },
+  { dataIndex: 'role', key: 'role', title: '角色', width: 90 },
+  { dataIndex: 'status', key: 'status', title: '状态', width: 90 },
+  { dataIndex: 'createdAt', key: 'createdAt', title: '创建时间', width: 130 },
+  { key: 'action', title: '操作', width: 100 },
 ];
 const customerColumns = [
-  { title: '客户编号', dataIndex: 'customerNo', key: 'customerNo', width: 150 },
-  { title: '姓名', dataIndex: 'name', key: 'name' },
-  { title: '手机号', dataIndex: 'phone', key: 'phone', width: 140 },
-  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 130 },
-  { title: '操作', key: 'action', width: 80 },
+  { dataIndex: 'customerNo', key: 'customerNo', title: '客户编号', width: 150 },
+  { dataIndex: 'name', key: 'name', title: '姓名' },
+  { dataIndex: 'phone', key: 'phone', title: '手机号', width: 140 },
+  { dataIndex: 'createdAt', key: 'createdAt', title: '创建时间', width: 130 },
+  { key: 'action', title: '操作', width: 80 },
 ];
 const optometryColumns = [
-  { title: '验光单号', dataIndex: 'orderNo', key: 'orderNo', width: 170 },
-  { title: '客户', key: 'customer' },
-  { title: '验光日期', dataIndex: 'optometryDate', key: 'optometryDate', width: 130 },
-  { title: '操作', key: 'action', width: 80 },
+  { dataIndex: 'orderNo', key: 'orderNo', title: '验光单号', width: 170 },
+  { key: 'customer', title: '客户' },
+  { dataIndex: 'optometryDate', key: 'optometryDate', title: '验光日期', width: 130 },
+  { key: 'action', title: '操作', width: 80 },
 ];
 const fittingColumns = [
-  { title: '配镜单号', dataIndex: 'orderNo', key: 'orderNo', width: 170 },
-  { title: '客户', key: 'customer' },
-  { title: '金额', dataIndex: 'totalAmount', key: 'totalAmount', width: 120 },
-  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 130 },
-  { title: '操作', key: 'action', width: 80 },
+  { dataIndex: 'orderNo', key: 'orderNo', title: '配镜单号', width: 170 },
+  { key: 'customer', title: '客户' },
+  { dataIndex: 'totalAmount', key: 'totalAmount', title: '金额', width: 120 },
+  { dataIndex: 'createdAt', key: 'createdAt', title: '创建时间', width: 130 },
+  { key: 'action', title: '操作', width: 80 },
 ];
-
-function userStatusText(status: UserStatus) {
-  return status === 'active' ? '启用' : '停用';
-}
+const accountOptions = computed(() =>
+  availableAccounts.value.map((account) => ({
+    label: `${account.displayName} / ${account.username}`,
+    value: account.id,
+  })),
+);
 
 async function load() {
   loading.value = true;
@@ -62,68 +75,69 @@ async function load() {
   }
 }
 
-function openAccount() {
-  Object.assign(accountForm, { username: '', password: 'Shop123456', displayName: '' });
+async function openAccount() {
+  accountForm.userId = '';
   accountOpen.value = true;
+  accountLoading.value = true;
+  try {
+    const page = await apiRequest<PageResult<Account>>(
+      '/users?page=1&pageSize=100&role=staff&status=active',
+    );
+    const assignedIds = new Set((detail.value?.users ?? []).map((user) => user.id));
+    availableAccounts.value = page.items.filter(
+      (account) => !assignedIds.has(account.id),
+    );
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '账号加载失败');
+  } finally {
+    accountLoading.value = false;
+  }
 }
 
 async function submitAccount() {
   try {
-    await apiRequest<TenantUser>(`/tenants/${tenantId.value}/users`, { method: 'POST', body: JSON.stringify(cleanPayload(accountForm)) });
+    await apiRequest<TenantUser>(`/tenants/${tenantId.value}/users`, {
+      body: JSON.stringify(accountForm),
+      method: 'POST',
+    });
     message.success('账号已分配');
     accountOpen.value = false;
     await load();
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '账号创建失败');
+    message.error(error instanceof Error ? error.message : '账号分配失败');
   }
 }
 
-function toggleUserStatus(user: TenantUser) {
-  const nextStatus: UserStatus = user.status === 'active' ? 'disabled' : 'active';
+function removeAssignment(user: TenantUser) {
   Modal.confirm({
-    title: nextStatus === 'active' ? '启用账号' : '停用账号',
-    content: `${user.username} 将被${nextStatus === 'active' ? '启用' : '停用'}`,
-    okText: '确认',
-    cancelText: '取消',
     async onOk() {
-      await apiRequest<TenantUser>(`/tenants/${tenantId.value}/users/${user.id}`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus }) });
-      message.success('账号状态已更新');
+      await apiRequest(`/tenants/${tenantId.value}/users/${user.id}`, {
+        method: 'DELETE',
+      });
+      message.success('已移除账号分配，账号本身仍然保留');
       await load();
     },
+    cancelText: '取消',
+    content: `确认移除 ${user.username} 对当前租户的访问权限？`,
+    okText: '移除',
+    okType: 'danger',
+    title: '移除账号',
   });
-}
-
-function openResetUserPassword(user: TenantUser) {
-  passwordUser.value = user;
-  userPasswordForm.password = 'Shop123456';
-  userPasswordOpen.value = true;
-}
-
-async function submitResetUserPassword() {
-  if (!passwordUser.value) return;
-  try {
-    await apiRequest(`/tenants/${tenantId.value}/users/${passwordUser.value.id}/password`, { method: 'PATCH', body: JSON.stringify(userPasswordForm) });
-    message.success('账号密码已重置');
-    userPasswordOpen.value = false;
-    passwordUser.value = null;
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : '重置失败');
-  }
 }
 
 function removeTenant() {
   if (!detail.value) return;
   Modal.confirm({
-    title: '删除租户',
-    content: `确认删除租户「${detail.value.name}」？该租户下账号、客户、验光单、配镜单会一并永久删除，商品字典不受影响。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
     async onOk() {
       await apiRequest(`/tenants/${tenantId.value}`, { method: 'DELETE' });
-      message.success('租户及关联数据已删除');
-      router.push('/neye/system/tenants');
+      message.success('租户及关联业务数据已删除，独立账号已保留');
+      await router.push('/neye/system/tenants');
     },
+    cancelText: '取消',
+    content: `确认删除租户「${detail.value.name}」？该租户业务数据和账号分配关系会被永久删除，独立账号与商品字典不受影响。`,
+    okText: '删除',
+    okType: 'danger',
+    title: '删除租户',
   });
 }
 
@@ -170,12 +184,11 @@ onMounted(() => load());
         <a-table row-key="id" size="small" :columns="accountColumns" :data-source="detail?.users || []" :pagination="false">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'role'">{{ record.role }}</template>
-            <template v-else-if="column.key === 'status'"><a-tag :color="record.status === 'active' ? 'green' : 'red'">{{ userStatusText(record.status) }}</a-tag></template>
+            <template v-else-if="column.key === 'status'"><a-tag :color="record.status === 'active' ? 'green' : 'red'">{{ record.status === 'active' ? '启用' : '停用' }}</a-tag></template>
             <template v-else-if="column.key === 'createdAt'">{{ formatDate(record.createdAt) }}</template>
             <template v-else-if="column.key === 'action'">
               <a-space>
-                <a-button type="link" class="neye-link-button" @click="toggleUserStatus(record)">{{ record.status === 'active' ? '停用' : '启用' }}</a-button>
-                <a-button type="link" class="neye-link-button" :icon="h(KeyOutlined)" @click="openResetUserPassword(record)">重置密码</a-button>
+                <a-button danger type="link" class="neye-link-button" :icon="h(DeleteOutlined)" @click="removeAssignment(record)">移除</a-button>
               </a-space>
             </template>
           </template>
@@ -219,22 +232,13 @@ onMounted(() => load());
 
     <a-modal v-model:open="accountOpen" title="分配租户账号" :footer="null" destroy-on-close>
       <a-form layout="vertical" :model="accountForm" @finish="submitAccount">
-        <div class="neye-form-grid">
-          <a-form-item label="账号" name="username" :rules="[{ required: true, message: '请填写账号' }]"><a-input v-model:value="accountForm.username" /></a-form-item>
-          <a-form-item label="姓名" name="displayName" :rules="[{ required: true, message: '请填写姓名' }]"><a-input v-model:value="accountForm.displayName" /></a-form-item>
-          <a-form-item label="初始密码" name="password" :rules="[{ required: true, min: 6, message: '至少 6 位' }]"><a-input-password v-model:value="accountForm.password" /></a-form-item>
-        </div>
+        <a-form-item label="选择已有账号" name="userId" :rules="[{ required: true, message: '请选择账号' }]">
+          <a-select v-model:value="accountForm.userId" show-search :loading="accountLoading" :options="accountOptions" placeholder="从账号管理中选择普通账号" />
+        </a-form-item>
         <a-space><a-button type="primary" html-type="submit">保存</a-button><a-button @click="accountOpen = false">取消</a-button></a-space>
       </a-form>
     </a-modal>
 
-    <a-modal v-model:open="userPasswordOpen" title="重置账号密码" :footer="null" destroy-on-close>
-      <a-form layout="vertical" :model="userPasswordForm" @finish="submitResetUserPassword">
-        <a-alert type="warning" show-icon style="margin-bottom: 12px" :message="`将重置 ${passwordUser?.username || ''} 的密码`" />
-        <a-form-item label="新密码" name="password" :rules="[{ required: true, min: 6, message: '至少 6 位' }]"><a-input-password v-model:value="userPasswordForm.password" /></a-form-item>
-        <a-space><a-button type="primary" html-type="submit">确认重置</a-button><a-button @click="userPasswordOpen = false">取消</a-button></a-space>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 

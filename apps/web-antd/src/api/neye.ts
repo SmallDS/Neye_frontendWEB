@@ -2,8 +2,7 @@ import { useAppConfig } from '@vben/hooks';
 import { useAccessStore } from '@vben/stores';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
-const API_BASE_URL =
-  apiURL || import.meta.env.VITE_NEYE_API_BASE_URL || '/api';
+const API_BASE_URL = apiURL || '/api';
 
 export class NeyeApiError extends Error {
   constructor(
@@ -32,6 +31,8 @@ async function neyeFetch(
     const accessStore = useAccessStore();
     if (accessStore.accessToken) {
       headers.set('Authorization', `Bearer ${accessStore.accessToken}`);
+      const tenantId = typeof window === 'undefined' ? '' : window.localStorage.getItem('neye.selectedTenantId');
+      if (tenantId) headers.set('X-Tenant-Id', tenantId);
     }
   }
 

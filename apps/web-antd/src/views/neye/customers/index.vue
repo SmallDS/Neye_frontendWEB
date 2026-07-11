@@ -165,7 +165,7 @@ onMounted(() => load());
     <section class="neye-panel">
       <div class="neye-toolbar">
         <a-select v-if="isTenantSelectorVisible" v-model:value="selectedTenantId" show-search :filter-option="tenantFilterOption" :loading="tenantLoading" :options="tenantOptions" placeholder="选择租户" class="neye-tenant-select" @change="load(1)" />
-        <a-input v-model:value="query.keyword" allow-clear placeholder="姓名 / 手机号 / 客户编号" style="width: 300px" @press-enter="load(1)" />
+        <a-input v-model:value="query.keyword" allow-clear placeholder="姓名 / 拼音首字母 / 手机号 / 客户编号" style="width: 300px" @press-enter="load(1)" />
         <a-button :icon="h(SearchOutlined)" @click="load(1)">查询</a-button>
         <a-button danger :disabled="selectedCount === 0" :icon="h(DeleteOutlined)" @click="batchRemoveCustomers">批量删除{{ selectedCount ? ` ${selectedCount}` : '' }}</a-button>
       </div>
