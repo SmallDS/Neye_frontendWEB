@@ -5,32 +5,38 @@ import { message } from 'ant-design-vue';
 
 import { apiRequest } from '#/api/neye';
 
-type SecretSource = 'database' | 'environment' | 'none';
+type WechatEnvVersion = 'develop' | 'release' | 'trial';
 
 interface WechatAuthSettings {
   enabled: boolean;
   appId: string;
+  appSecret: string;
+  envVersion: WechatEnvVersion;
   secretConfigured: boolean;
-  secretSource: SecretSource;
 }
 
 const loading = ref(false);
 const saving = ref(false);
+const envVersionOptions = [
+  { label: '正式版', value: 'release' },
+  { label: '体验版', value: 'trial' },
+  { label: '开发版', value: 'develop' },
+];
 const form = reactive({
   enabled: false,
   appId: '',
   appSecret: '',
+  envVersion: 'release' as WechatEnvVersion,
   clearSecret: false,
   secretConfigured: false,
-  secretSource: 'none' as SecretSource,
 });
 
 function applySettings(settings: WechatAuthSettings) {
   form.enabled = settings.enabled;
   form.appId = settings.appId;
+  form.appSecret = settings.appSecret;
+  form.envVersion = settings.envVersion;
   form.secretConfigured = settings.secretConfigured;
-  form.secretSource = settings.secretSource;
-  form.appSecret = '';
   form.clearSecret = false;
 }
 
@@ -57,9 +63,8 @@ async function save() {
         body: JSON.stringify({
           enabled: form.enabled,
           appId: form.appId.trim(),
-          ...(form.appSecret.trim()
-            ? { appSecret: form.appSecret.trim() }
-            : {}),
+          appSecret: form.appSecret.trim(),
+          envVersion: form.envVersion,
           clearSecret: form.clearSecret,
         }),
       },
@@ -75,6 +80,10 @@ async function save() {
 
 function handleSecretInput() {
   if (form.appSecret) form.clearSecret = false;
+}
+
+function handleClearSecret(checked: boolean) {
+  if (checked) form.appSecret = '';
 }
 
 onMounted(() => void load());
@@ -112,24 +121,15 @@ onMounted(() => void load());
           <a-form-item label="微信小程序 AppSecret">
             <a-input-password
               v-model:value="form.appSecret"
+              :disabled="form.clearSecret"
               :maxlength="128"
-              :placeholder="
-                form.secretConfigured
-                  ? '留空表示保持当前 AppSecret'
-                  : '请输入小程序 AppSecret'
-              "
-              autocomplete="new-password"
+              placeholder="请输入小程序 AppSecret"
+              autocomplete="off"
               @input="handleSecretInput"
             />
             <div class="secret-status">
               <a-tag :color="form.secretConfigured ? 'green' : 'default'">
-                {{
-                  form.secretConfigured
-                    ? form.secretSource === 'database'
-                      ? '已加密保存到数据库'
-                      : '当前来自后端环境变量'
-                    : '尚未配置'
-                }}
+                {{ form.secretConfigured ? '已保存到数据库' : '尚未配置' }}
               </a-tag>
             </div>
           </a-form-item>
@@ -137,18 +137,25 @@ onMounted(() => void load());
           <a-form-item v-if="form.secretConfigured">
             <a-checkbox
               v-model:checked="form.clearSecret"
-              :disabled="Boolean(form.appSecret)"
+              @change="handleClearSecret(form.clearSecret)"
             >
               清除已保存的 AppSecret
             </a-checkbox>
           </a-form-item>
+
+          <a-form-item label="小程序码打开版本">
+            <a-segmented
+              v-model:value="form.envVersion"
+              :options="envVersionOptions"
+            />
+          </a-form-item>
         </a-form>
 
         <a-alert
-          type="info"
+          type="warning"
           show-icon
-          message="密钥安全"
-          description="AppSecret 保存时会使用 AES-256-GCM 加密，页面与接口均不会回显明文。修改 SETTINGS_ENCRYPTION_KEY 或 JWT_SECRET 前需要先重新保存 AppSecret。"
+          message="明文存储说明"
+          description="AppSecret 将以明文保存在数据库 system_settings 中，并在仅管理员可访问的设置页面回显。请严格限制数据库和管理员账号权限。"
         />
       </section>
     </a-spin>
