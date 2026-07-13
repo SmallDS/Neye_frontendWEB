@@ -225,7 +225,6 @@ watch(customerId, () => void load(), { immediate: true });
               @click="selectOptometry(item.id)"
             >
               <span class="neye-optometry-list-date">{{ formatDate(item.optometryDate) }}</span>
-              <span class="neye-optometry-list-meta">{{ item.orderNo }}</span>
               <span class="neye-optometry-list-count">
                 配镜单 {{ fittingCount(item.id) }} 张
               </span>
@@ -272,7 +271,7 @@ watch(customerId, () => void load(), { immediate: true });
 }
 .neye-customer-workspace {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -319,7 +318,6 @@ watch(customerId, () => void load(), { immediate: true });
   box-shadow: inset 3px 0 hsl(var(--primary));
 }
 .neye-optometry-list-date,
-.neye-optometry-list-meta,
 .neye-optometry-list-count {
   display: block;
 }
@@ -327,7 +325,6 @@ watch(customerId, () => void load(), { immediate: true });
   font-size: 15px;
   font-weight: 650;
 }
-.neye-optometry-list-meta,
 .neye-optometry-list-count {
   margin-top: 4px;
   overflow: hidden;
@@ -346,7 +343,7 @@ watch(customerId, () => void load(), { immediate: true });
 }
 @media (max-width: 1100px) {
   .neye-customer-workspace {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 190px minmax(0, 1fr);
   }
 }
 @media (max-width: 840px) {
