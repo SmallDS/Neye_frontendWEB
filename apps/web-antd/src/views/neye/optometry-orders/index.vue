@@ -8,6 +8,7 @@ import { apiRequest } from '#/api/neye';
 import { useNeyeTenantScope } from '#/composables/useNeyeTenantScope';
 import type { BatchDeleteResult, OptometryOrder, PageResult } from '#/types/neye';
 import { formatDate } from '#/utils/neye-format';
+import { customerWorkspaceLocation } from '../customer-workspace';
 
 const router = useRouter();
 const loading = ref(false);
@@ -118,7 +119,7 @@ onMounted(() => load());
           <template v-else-if="column.key === 'optometryDate'">{{ formatDate(record.optometryDate) }}</template>
           <template v-else-if="column.key === 'farPd'">{{ record.farPd || '-' }}</template>
           <template v-else-if="column.key === 'nearPd'">{{ record.nearPd || '-' }}</template>
-          <template v-else-if="column.key === 'action'"><a-button type="link" class="neye-link-button" @click="router.push(`/neye/optometry-orders/${record.id}`)">详情</a-button></template>
+          <template v-else-if="column.key === 'action'"><a-button type="link" class="neye-link-button" @click="router.push(customerWorkspaceLocation(record.customerId, record.id))">详情</a-button></template>
         </template>
       </a-table>
     </section>

@@ -8,6 +8,7 @@ import { apiRequest } from '#/api/neye';
 import { useNeyeTenantScope } from '#/composables/useNeyeTenantScope';
 import type { BatchDeleteResult, FittingOrder, PageResult } from '#/types/neye';
 import { formatDate, money } from '#/utils/neye-format';
+import { customerWorkspaceLocation } from '../customer-workspace';
 
 const router = useRouter();
 const loading = ref(false);
@@ -112,7 +113,7 @@ onMounted(() => load());
           <template v-if="column.key === 'customer'">{{ record.customer?.name || '-' }}</template>
           <template v-else-if="column.key === 'totalAmount'"><span class="neye-money">{{ money(record.totalAmount) }}</span></template>
           <template v-else-if="column.key === 'createdAt'">{{ formatDate(record.createdAt) }}</template>
-          <template v-else-if="column.key === 'action'"><a-button type="link" class="neye-link-button" @click="router.push(`/neye/fitting-orders/${record.id}`)">详情</a-button></template>
+          <template v-else-if="column.key === 'action'"><a-button type="link" class="neye-link-button" @click="router.push(customerWorkspaceLocation(record.customerId, record.optometryOrderId, record.id))">详情</a-button></template>
         </template>
       </a-table>
     </section>

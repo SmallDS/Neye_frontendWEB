@@ -33,6 +33,7 @@ const routes: RouteRecordRaw[] = [
       activePath: '/neye/customers',
       authority: ['admin', 'staff'],
       hideInMenu: true,
+      fullPathKey: false,
       keepAlive: false,
       title: '客户详情',
     },
