@@ -342,6 +342,9 @@ const headerSlots = computed(() => {
             @select="handleMenuSelect"
           />
         </template>
+        <template v-if="$slots['global-search']" #global-search>
+          <slot name="global-search"></slot>
+        </template>
         <template #user-dropdown>
           <slot name="user-dropdown"></slot>
         </template>

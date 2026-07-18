@@ -118,6 +118,10 @@ const previewTotal = computed(() =>
   ),
 );
 
+function updateOptometryForm(value: Record<string, unknown>) {
+  Object.assign(optometryForm, value);
+}
+
 function fillOptometryForm(source: OptometryOrder) {
   Object.keys(optometryForm).forEach((key) => delete optometryForm[key]);
   optometryForm.optometryDate = formatDate(source.optometryDate);
@@ -353,8 +357,9 @@ defineExpose({ confirmDiscardChanges, reload: load });
         </div>
         <a-form layout="vertical" :model="optometryForm" @finish="saveOptometry">
           <OptometryPrescriptionTable
-            v-model="optometryForm"
+            :model-value="optometryForm"
             editable
+            @update:model-value="updateOptometryForm"
             mode="form"
             :style-config="optometryStyle"
           />

@@ -52,7 +52,7 @@ async function pollSession() {
   try {
     const result = await pollWechatSessionApi(sessionId.value);
     if (result.status === 'binding_required') {
-      qrStatus.value = '该微信尚未绑定，请在小程序中绑定账号';
+      qrStatus.value = '请在小程序完成绑定或确认本次登录';
       return;
     }
     if (result.status === 'expired') {
@@ -72,7 +72,8 @@ async function pollSession() {
     }
   } catch (error) {
     stopPolling();
-    qrStatus.value = error instanceof Error ? error.message : '扫码状态获取失败';
+    qrStatus.value =
+      error instanceof Error ? error.message : '扫码状态获取失败';
   }
 }
 

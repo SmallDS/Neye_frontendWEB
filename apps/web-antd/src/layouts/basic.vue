@@ -11,6 +11,8 @@ import { useAccessStore, useUserStore } from '@vben/stores';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
 
+import CustomerSearch from './customer-search.vue';
+
 const router = useRouter();
 const userStore = useUserStore();
 const authStore = useAuthStore();
@@ -71,6 +73,9 @@ watch(
 
 <template>
   <BasicLayout @clear-preferences-and-logout="handleLogout">
+    <template #global-search>
+      <CustomerSearch class="mr-1 sm:mr-4" />
+    </template>
     <template #user-dropdown>
       <UserDropdown
         :avatar

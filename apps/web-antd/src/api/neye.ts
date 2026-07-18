@@ -1,14 +1,35 @@
+import type {
+  AdminOverview,
+  AdminSystemStatus,
+  ImportCapabilities,
+  ImportTask,
+  UserBatchStatusResult,
+  UserStatus,
+} from '#/types/neye';
+
 import { useAppConfig } from '@vben/hooks';
 import { useAccessStore } from '@vben/stores';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 const API_BASE_URL = apiURL || '/api';
 
+export interface NeyeApiErrorData {
+  code?: string;
+  details?: unknown;
+  message: string;
+  requestId?: string;
+}
+
 export class NeyeApiError extends Error {
+  override readonly name = 'NeyeApiError';
+
   constructor(
     public readonly status: number,
     public readonly body: unknown,
     message: string,
+    public readonly code?: string,
+    public readonly details?: unknown,
+    public readonly requestId?: string,
   ) {
     super(message);
   }
@@ -18,12 +39,23 @@ interface NeyeApiRequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
 
+function clearUnauthorizedSession() {
+  const accessStore = useAccessStore();
+  accessStore.setAccessToken(null);
+  accessStore.setLoginExpired(true);
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem('neye.selectedTenantId');
+    window.dispatchEvent(new CustomEvent('neye:unauthorized'));
+  }
+}
+
 async function neyeFetch(
   path: string,
   options: NeyeApiRequestOptions = {},
 ): Promise<Response> {
   const headers = new Headers(options.headers);
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
   if (options.body && !isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -31,15 +63,37 @@ async function neyeFetch(
     const accessStore = useAccessStore();
     if (accessStore.accessToken) {
       headers.set('Authorization', `Bearer ${accessStore.accessToken}`);
-      const tenantId = typeof window === 'undefined' ? '' : window.localStorage.getItem('neye.selectedTenantId');
+      const tenantId =
+        typeof window === 'undefined'
+          ? ''
+          : window.localStorage.getItem('neye.selectedTenantId');
       if (tenantId) headers.set('X-Tenant-Id', tenantId);
     }
   }
 
-  return fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+    if (response.status === 401 && !options.skipAuth)
+      clearUnauthorizedSession();
+    return response;
+  } catch (error) {
+    throw new NeyeApiError(
+      0,
+      null,
+      '无法连接服务器，请检查网络后重试',
+      'NETWORK_ERROR',
+      error,
+    );
+  }
+}
+
+async function parseResponse(response: Response) {
+  if (response.status === 204) return null;
+  const text = await response.text();
+  return text ? safeJson(text) : null;
 }
 
 export async function neyeApiRequest<T>(
@@ -47,11 +101,8 @@ export async function neyeApiRequest<T>(
   options: NeyeApiRequestOptions = {},
 ): Promise<T> {
   const response = await neyeFetch(path, options);
-  const text = await response.text();
-  const body = text ? safeJson(text) : null;
-  if (!response.ok) {
-    throw new NeyeApiError(response.status, body, getErrorMessage(body, response.status));
-  }
+  const body = await parseResponse(response);
+  if (!response.ok) throw createApiError(response.status, body);
   return body as T;
 }
 
@@ -60,22 +111,120 @@ export async function neyeApiBlob(
   options: NeyeApiRequestOptions = {},
 ): Promise<Blob> {
   const response = await neyeFetch(path, options);
-  if (!response.ok) {
-    const text = await response.text();
-    const body = text ? safeJson(text) : null;
-    throw new NeyeApiError(response.status, body, getErrorMessage(body, response.status));
-  }
+  if (!response.ok)
+    throw createApiError(response.status, await parseResponse(response));
   return response.blob();
 }
 
 export const apiRequest = neyeApiRequest;
 export const apiBlob = neyeApiBlob;
 
+/**
+ * Removes only `undefined`. Empty strings and null are intentional values in
+ * PATCH requests and must survive serialization so optional fields can be cleared.
+ */
 export function cleanPayload<T extends Record<string, unknown>>(payload: T) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined),
+  );
+}
+
+/** Use for create requests where blank optional inputs should be omitted. */
+export function cleanCreatePayload<T extends Record<string, unknown>>(
+  payload: T,
+) {
   return Object.fromEntries(
     Object.entries(payload).filter(
       ([, value]) => value !== undefined && value !== null && value !== '',
     ),
+  );
+}
+
+export function toQueryString(query: Record<string, unknown>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === '') continue;
+    params.set(key, String(value));
+  }
+  return params.toString();
+}
+
+export const importTasksApi = {
+  getCapabilities() {
+    return apiRequest<ImportCapabilities>('/import-tasks/capabilities');
+  },
+  getErrorReport(taskId: string) {
+    return apiBlob(`/import-tasks/${taskId}/error-report`);
+  },
+  createCustomerOptometry(payload: FormData) {
+    return apiRequest<ImportTask>('/import-tasks/customer-optometry', {
+      body: payload,
+      method: 'POST',
+    });
+  },
+};
+export const adminApi = {
+  getOverview() {
+    return apiRequest<AdminOverview>('/admin/overview');
+  },
+  getSystemStatus() {
+    return apiRequest<AdminSystemStatus>('/admin/system-status');
+  },
+  updateUsersStatus(payload: {
+    status: UserStatus;
+    userIds: string[];
+  }) {
+    return apiRequest<UserBatchStatusResult>('/users/batch-status', {
+      body: JSON.stringify(payload),
+      method: 'POST',
+    });
+  },
+};
+
+export function normalizeApiErrorBody(
+  body: unknown,
+  status: number,
+): NeyeApiErrorData {
+  if (typeof body !== 'object' || !body) {
+    return {
+      message:
+        typeof body === 'string' && body.trim()
+          ? body
+          : `请求失败（${status}）`,
+    };
+  }
+
+  const value = body as Record<string, unknown>;
+  const nested =
+    typeof value.error === 'object' && value.error
+      ? (value.error as Record<string, unknown>)
+      : undefined;
+  const rawMessage = value.message ?? nested?.message ?? value.error;
+  let message = `请求失败（${status}）`;
+  if (Array.isArray(rawMessage)) message = rawMessage.map(String).join('；');
+  else if (typeof rawMessage === 'string' && rawMessage.trim()) {
+    message = rawMessage;
+  }
+
+  return {
+    code: stringValue(value.code ?? nested?.code),
+    details: value.details ?? nested?.details,
+    message,
+    requestId: stringValue(
+      value.requestId ?? value.request_id ?? nested?.requestId,
+    ),
+  };
+}
+
+function createApiError(status: number, body: unknown) {
+  const normalized = normalizeApiErrorBody(body, status);
+  return new NeyeApiError(
+    status,
+    body,
+    normalized.message,
+    normalized.code,
+    normalized.details,
+    normalized.requestId,
   );
 }
 
@@ -87,10 +236,6 @@ function safeJson(text: string) {
   }
 }
 
-function getErrorMessage(body: unknown, status: number) {
-  if (typeof body === 'object' && body && 'message' in body) {
-    const message = (body as { message: string | string[] }).message;
-    return Array.isArray(message) ? message.join('; ') : message;
-  }
-  return `Request failed: ${status}`;
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value ? value : undefined;
 }

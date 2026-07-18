@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineOptions({ name: 'NEyeTenants' });
+import type { BatchDeleteResult, PageResult, Tenant } from '#/types/neye';
 
 import { computed, h, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -11,22 +11,28 @@ import {
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons-vue';
-import { Modal, message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 
-import { apiRequest, cleanPayload } from '#/api/neye';
-import type {
-  BatchDeleteResult,
-  PageResult,
-  Tenant,
-  TenantStatus,
-} from '#/types/neye';
+import { apiRequest, cleanCreatePayload, cleanPayload } from '#/api/neye';
 import { formatDate, tenantStatusText } from '#/utils/neye-format';
+
+import { validateDangerConfirmation } from './governance';
+
+defineOptions({ name: 'NEyeTenants' });
 
 const router = useRouter();
 const loading = ref(false);
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editingTenant = ref<null | Tenant>(null);
+const dangerOpen = ref(false);
+const dangerLoading = ref(false);
+type DangerAction =
+  | { expectedName: string; ids: string[]; kind: 'batch-delete'; title: string }
+  | { expectedName: string; item: Tenant; kind: 'delete'; title: string }
+  | { expectedName: string; item: Tenant; kind: 'disable'; title: string };
+const dangerAction = ref<DangerAction>();
+const dangerForm = reactive({ confirmation: '' });
 const selectedRowKeys = ref<string[]>([]);
 const selectedCount = computed(() => selectedRowKeys.value.length);
 const rowSelection = computed(() => ({
@@ -47,13 +53,17 @@ const editForm = reactive<{
   contactName: string;
   contactPhone: string;
   name: string;
-  status: TenantStatus;
-}>({ contactName: '', contactPhone: '', name: '', status: 'active' });
+}>({ contactName: '', contactPhone: '', name: '' });
 const columns = [
   { dataIndex: 'code', key: 'code', title: '租户编号', width: 190 },
   { dataIndex: 'name', key: 'name', title: '租户名称' },
   { dataIndex: 'contactName', key: 'contactName', title: '联系人', width: 140 },
-  { dataIndex: 'contactPhone', key: 'contactPhone', title: '联系电话', width: 150 },
+  {
+    dataIndex: 'contactPhone',
+    key: 'contactPhone',
+    title: '联系电话',
+    width: 150,
+  },
   { dataIndex: 'status', key: 'status', title: '状态', width: 100 },
   { dataIndex: 'createdAt', key: 'createdAt', title: '创建时间', width: 130 },
   { key: 'action', title: '操作', width: 270 },
@@ -85,7 +95,7 @@ function openCreate() {
 async function submitCreate() {
   try {
     await apiRequest('/tenants', {
-      body: JSON.stringify(cleanPayload(form)),
+      body: JSON.stringify(cleanCreatePayload(form)),
       method: 'POST',
     });
     message.success('租户已创建，可在账号管理中分配账号');
@@ -102,7 +112,6 @@ function openEdit(item: Tenant) {
     contactName: item.contactName ?? '',
     contactPhone: item.contactPhone ?? '',
     name: item.name,
-    status: item.status,
   });
   editOpen.value = true;
 }
@@ -123,39 +132,43 @@ async function submitEdit() {
   }
 }
 
+function openDanger(action: DangerAction) {
+  dangerAction.value = action;
+  Object.assign(dangerForm, { confirmation: '' });
+  dangerOpen.value = true;
+}
+
 function toggleStatus(item: Tenant) {
-  const nextStatus: TenantStatus =
-    item.status === 'active' ? 'disabled' : 'active';
+  if (item.status === 'active') {
+    openDanger({
+      expectedName: item.name,
+      item,
+      kind: 'disable',
+      title: '停用租户',
+    });
+    return;
+  }
   Modal.confirm({
     async onOk() {
       await apiRequest<Tenant>(`/tenants/${item.id}`, {
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: 'active' }),
         method: 'PATCH',
       });
-      message.success('状态已更新');
+      message.success('租户已启用');
       await load();
     },
     cancelText: '取消',
-    content: `${item.name} 将被${nextStatus === 'active' ? '启用' : '停用'}`,
-    okText: '确认',
-    title: nextStatus === 'active' ? '启用租户' : '停用租户',
+    content: `${item.name} 将恢复业务访问`,
+    okText: '确认启用',
+    title: '启用租户',
   });
 }
 
 function removeTenant(item: Tenant) {
-  Modal.confirm({
-    async onOk() {
-      const deleted = await apiRequest<BatchDeleteResult>(
-        `/tenants/${item.id}`,
-        { method: 'DELETE' },
-      );
-      message.success(`已删除 ${deleted.deletedCount} 个租户`);
-      await load(1);
-    },
-    cancelText: '取消',
-    content: `确认删除租户「${item.name}」？该租户业务数据与账号分配关系会被永久删除，独立账号和商品字典不受影响。`,
-    okText: '删除',
-    okType: 'danger',
+  openDanger({
+    expectedName: item.name,
+    item,
+    kind: 'delete',
     title: '删除租户',
   });
 }
@@ -165,26 +178,67 @@ function batchRemoveTenants() {
     message.warning('请先选择租户');
     return;
   }
-  Modal.confirm({
-    async onOk() {
+  const count = selectedRowKeys.value.length;
+  openDanger({
+    expectedName: `删除 ${count} 个租户`,
+    ids: [...selectedRowKeys.value],
+    kind: 'batch-delete',
+    title: '批量删除租户',
+  });
+}
+
+async function submitDangerAction() {
+  const action = dangerAction.value;
+  if (!action) return;
+  const validation = validateDangerConfirmation(
+    dangerForm.confirmation,
+    action.expectedName,
+  );
+  if (validation) {
+    message.warning(validation);
+    return;
+  }
+
+  dangerLoading.value = true;
+  try {
+    if (action.kind === 'disable') {
+      await apiRequest<Tenant>(`/tenants/${action.item.id}`, {
+        body: JSON.stringify({
+          status: 'disabled',
+        }),
+        method: 'PATCH',
+      });
+      message.success('租户已停用');
+      await load();
+    } else if (action.kind === 'delete') {
+      const deleted = await apiRequest<BatchDeleteResult>(
+        `/tenants/${action.item.id}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      message.success(`已删除 ${deleted.deletedCount} 个租户`);
+      await load(1);
+    } else {
       const deleted = await apiRequest<BatchDeleteResult>(
         '/tenants/batch-delete',
         {
-          body: JSON.stringify({ ids: selectedRowKeys.value }),
+          body: JSON.stringify({
+            ids: action.ids,
+          }),
           method: 'POST',
         },
       );
       message.success(`已删除 ${deleted.deletedCount} 个租户`);
       await load(1);
-    },
-    cancelText: '取消',
-    content: `确认删除选中的 ${selectedRowKeys.value.length} 个租户？业务数据与账号分配关系会被永久删除，独立账号和商品字典不受影响。`,
-    okText: '批量删除',
-    okType: 'danger',
-    title: '批量删除租户',
-  });
+    }
+    dangerOpen.value = false;
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '危险操作执行失败');
+  } finally {
+    dangerLoading.value = false;
+  }
 }
-
 function handleTableChange(pagination: { current?: number }) {
   void load(Number(pagination.current || 1));
 }
@@ -292,9 +346,18 @@ onMounted(() => load(1));
       </a-table>
     </section>
 
-    <a-modal v-model:open="createOpen" title="新建租户" :footer="null" destroy-on-close>
+    <a-modal
+      v-model:open="createOpen"
+      title="新建租户"
+      :footer="null"
+      destroy-on-close
+    >
       <a-form layout="vertical" :model="form" @finish="submitCreate">
-        <a-form-item label="租户名称" name="name" :rules="[{ required: true, message: '请填写租户名称' }]">
+        <a-form-item
+          label="租户名称"
+          name="name"
+          :rules="[{ required: true, message: '请填写租户名称' }]"
+        >
           <a-input v-model:value="form.name" />
         </a-form-item>
         <div class="neye-form-grid">
@@ -312,9 +375,18 @@ onMounted(() => load(1));
       </a-form>
     </a-modal>
 
-    <a-modal v-model:open="editOpen" title="编辑租户" :footer="null" destroy-on-close>
+    <a-modal
+      v-model:open="editOpen"
+      title="编辑租户"
+      :footer="null"
+      destroy-on-close
+    >
       <a-form layout="vertical" :model="editForm" @finish="submitEdit">
-        <a-form-item label="租户名称" name="name" :rules="[{ required: true, message: '请填写租户名称' }]">
+        <a-form-item
+          label="租户名称"
+          name="name"
+          :rules="[{ required: true, message: '请填写租户名称' }]"
+        >
           <a-input v-model:value="editForm.name" />
         </a-form-item>
         <div class="neye-form-grid">
@@ -325,18 +397,50 @@ onMounted(() => load(1));
             <a-input v-model:value="editForm.contactPhone" />
           </a-form-item>
         </div>
-        <a-form-item label="状态" name="status">
-          <a-select
-            v-model:value="editForm.status"
-            :options="[
-              { label: '启用', value: 'active' },
-              { label: '停用', value: 'disabled' },
-            ]"
-          />
-        </a-form-item>
         <a-space>
           <a-button type="primary" html-type="submit">保存</a-button>
           <a-button @click="editOpen = false">取消</a-button>
+        </a-space>
+      </a-form>
+    </a-modal>
+    <a-modal
+      v-model:open="dangerOpen"
+      :title="dangerAction?.title"
+      :footer="null"
+      destroy-on-close
+    >
+      <a-alert
+        type="error"
+        show-icon
+        :message="'\u9ad8\u98ce\u9669\u64cd\u4f5c'"
+        style="margin-bottom: 16px"
+      />
+      <a-form
+        layout="vertical"
+        :model="dangerForm"
+        @finish="submitDangerAction"
+      >
+        <a-form-item
+          :label="`\u8bf7\u8f93\u5165\u201c${dangerAction?.expectedName || ''}\u201d\u5b8c\u6210\u786e\u8ba4`"
+          name="confirmation"
+          :rules="[
+            {
+              required: true,
+              message: '\u8bf7\u8f93\u5165\u786e\u8ba4\u5185\u5bb9',
+            },
+          ]"
+        >
+          <a-input v-model:value="dangerForm.confirmation" autocomplete="off" />
+        </a-form-item>
+        <a-space>
+          <a-button
+            danger
+            type="primary"
+            html-type="submit"
+            :loading="dangerLoading"
+            >{{ '\u786e\u8ba4\u6267\u884c' }}</a-button
+          >
+          <a-button @click="dangerOpen = false">{{ '\u53d6\u6d88' }}</a-button>
         </a-space>
       </a-form>
     </a-modal>

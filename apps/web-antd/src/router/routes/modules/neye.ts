@@ -107,8 +107,28 @@ const routes: RouteRecordRaw[] = [
     },
     name: 'NEyeSystem',
     path: '/neye/system',
-    redirect: '/neye/system/tenants',
+    redirect: '/neye/system/dashboard',
     children: [
+      {
+        name: 'NEyeAdminDashboard',
+        path: 'dashboard',
+        component: () => import('#/views/neye/system/dashboard.vue'),
+        meta: {
+          icon: 'lucide:gauge',
+          keepAlive: false,
+          title: '管理总览',
+        },
+      },
+      {
+        name: 'NEyeSystemStatus',
+        path: 'system-status',
+        component: () => import('#/views/neye/system/system-status.vue'),
+        meta: {
+          icon: 'lucide:activity',
+          keepAlive: false,
+          title: '系统状态',
+        },
+      },
       {
         name: 'NEyeUsers',
         path: 'users',

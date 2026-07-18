@@ -1,10 +1,32 @@
 export type UserRole = 'admin' | 'staff';
-export type Gender = 'male' | 'female' | 'unknown';
+export type Gender = 'female' | 'male' | 'unknown';
 export type ProductItemCategory = 'frame' | 'lens' | 'other';
 export type TenantStatus = 'active' | 'disabled';
 export type UserStatus = 'active' | 'disabled';
-export type ImportTaskStatus = 'pending' | 'running' | 'canceling' | 'canceled' | 'completed' | 'failed';
-export type ImportTaskRowStatus = 'pending' | 'success' | 'failed' | 'skipped';
+export type ImportTaskStatus =
+  | 'canceled'
+  | 'canceling'
+  | 'completed'
+  | 'failed'
+  | 'pending'
+  | 'running';
+export type ImportTaskRowStatus = 'failed' | 'pending' | 'skipped' | 'success';
+export type ImportTaskPhase =
+  | 'cleanup'
+  | 'finished'
+  | 'parsing'
+  | 'processing'
+  | 'publishing'
+  | 'uploaded';
+
+export interface ImportCapabilities {
+  maxFileBytes: number;
+  maxRows: number;
+  maxColumns: number;
+  maxSheets: number;
+  batchSize: number;
+  workerConcurrency: number;
+}
 
 export interface PageResult<T> {
   items: T[];
@@ -41,7 +63,6 @@ export interface Tenant {
   updatedAt?: string;
 }
 
-
 export interface Account {
   id: string;
   username: string;
@@ -66,17 +87,16 @@ export interface TenantUser {
 
 export interface TenantDetail extends Tenant {
   counts: {
-    users: number;
     customers: number;
-    optometryOrders: number;
     fittingOrders: number;
+    optometryOrders: number;
+    users: number;
   };
   users: TenantUser[];
   recentCustomers: Customer[];
   recentOptometryOrders: OptometryOrder[];
   recentFittingOrders: FittingOrder[];
 }
-
 
 export interface OptometryStyleConfig {
   hiddenValueFields: string[];
@@ -105,17 +125,25 @@ export interface ImportTask {
   id: string;
   tenantId: string;
   tenant?: Tenant;
-  createdBy?: Pick<TenantUser, 'displayName' | 'id' | 'role' | 'status' | 'username'>;
+  createdBy?: Pick<
+    TenantUser,
+    'displayName' | 'id' | 'role' | 'status' | 'username'
+  >;
   type: 'customer_optometry';
   status: ImportTaskStatus;
+  phase: ImportTaskPhase;
   fileName: string;
   totalRows: number;
+  stagedRows: number;
+  lastStagedRowNo: number;
+  lastProcessedRowNo: number;
   processedRows: number;
   successRows: number;
   failedRows: number;
   errorMessage?: null | string;
   startedAt?: null | string;
   finishedAt?: null | string;
+  publishedAt?: null | string;
   cancelRequestedAt?: null | string;
   rolledBackAt?: null | string;
   rollbackCustomers: number;
@@ -183,4 +211,66 @@ export interface FittingOrder {
   totalAmount: string;
   remark?: null | string;
   createdAt: string;
+}
+export type SystemHealthStatus = 'error' | 'ok' | 'warning';
+
+export interface AdminOverview {
+  counts: {
+    customers: number;
+    fittingOrders: number;
+    optometryOrders: number;
+    productItems: number;
+    tenants: { active: number; disabled: number; total: number };
+    users: { active: number; disabled: number; total: number };
+  };
+  importTasks: {
+    completed: number;
+    failed: number;
+    pending: number;
+    running: number;
+    successRate: number;
+    total: number;
+  };
+  trends: {
+    customers: number;
+    fittingOrders: number;
+    optometryOrders: number;
+    periodDays: number;
+  };
+}
+
+export interface SystemStatusCheck {
+  name: string;
+  status: SystemHealthStatus;
+  message: string;
+  latencyMs?: number;
+}
+
+export interface AdminSystemStatus {
+  status: SystemHealthStatus;
+  checkedAt: string;
+  uptimeSeconds: number;
+  memory: {
+    heapTotalBytes: number;
+    heapUsedBytes: number;
+    rssBytes: number;
+  };
+  runtime: {
+    nodeVersion: string;
+    platform: string;
+  };
+  checks: SystemStatusCheck[];
+}
+
+export interface UserBatchStatusItem {
+  userId: string;
+  username?: string;
+  success: boolean;
+  message?: string;
+}
+
+export interface UserBatchStatusResult {
+  updatedCount: number;
+  status: UserStatus;
+  userIds: string[];
 }
