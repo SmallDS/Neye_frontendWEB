@@ -20,6 +20,8 @@ import {
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
 
+import '../neye.css';
+
 import { adminApi } from '#/api/neye';
 
 import {
@@ -607,5 +609,3 @@ onMounted(() => {
   }
 }
 </style>
-
-<style src="../neye.css"></style>
