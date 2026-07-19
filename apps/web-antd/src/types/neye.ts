@@ -274,3 +274,72 @@ export interface UserBatchStatusResult {
   status: UserStatus;
   userIds: string[];
 }
+export type EventLogLevel = 'ERROR' | 'INFO' | 'WARN';
+export type EventLogCategory = 'AUDIT' | 'SECURITY' | 'SYSTEM';
+export type EventLogResult = 'DENIED' | 'FAILED' | 'SUCCESS';
+export type EventLogClearScope = 'all' | 'beforeDate';
+
+export interface EventLog {
+  id: string;
+  level: EventLogLevel;
+  category: EventLogCategory;
+  result: EventLogResult;
+  module: string;
+  action: string;
+  actorUserId?: null | string;
+  actorUsername?: null | string;
+  tenantId?: null | string;
+  resourceType?: null | string;
+  resourceId?: null | string;
+  requestId?: null | string;
+  ipAddress?: null | string;
+  reason?: null | string;
+  errorSummary?: null | string;
+  metadata?: null | Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface EventLogQuery {
+  page: number;
+  pageSize: number;
+  level?: EventLogLevel;
+  category?: EventLogCategory;
+  result?: EventLogResult;
+  module?: string;
+  actorUsername?: string;
+  tenantId?: string;
+  requestId?: string;
+  resourceId?: string;
+  startAt?: string;
+  endAt?: string;
+}
+
+export interface EventLogRetention {
+  retentionDays: number;
+}
+
+export interface EventLogRetentionResult extends EventLogRetention {
+  deletedCount: number;
+}
+
+export interface EventLogClearSelection {
+  scope: EventLogClearScope;
+  beforeDate?: string;
+}
+
+export interface EventLogClearPreview extends EventLogClearSelection {
+  cutoff?: string;
+  expectedCount: number;
+  confirmationText: string;
+}
+
+export interface EventLogClearPayload extends EventLogClearSelection {
+  confirmationText: string;
+  expectedCount: number;
+  reason: string;
+}
+
+export interface EventLogClearResult {
+  deletedCount: number;
+  summaryLogId: string;
+}

@@ -150,6 +150,17 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'NEyeEventLogs',
+        path: 'event-logs',
+        component: () => import('#/views/neye/system/event-logs.vue'),
+        meta: {
+          authority: ['admin'],
+          icon: 'lucide:scroll-text',
+          keepAlive: false,
+          title: '日志中心',
+        },
+      },
+      {
         name: 'NEyeImportTasks',
         path: 'import-tasks',
         component: () => import('#/views/neye/system/import-tasks.vue'),

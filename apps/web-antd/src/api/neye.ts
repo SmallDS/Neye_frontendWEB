@@ -1,8 +1,17 @@
 import type {
   AdminOverview,
   AdminSystemStatus,
+  EventLogClearPayload,
+  EventLogClearPreview,
+  EventLogClearResult,
+  EventLogClearSelection,
+  EventLogQuery,
+  EventLogRetention,
+  EventLogRetentionResult,
+  EventLog,
   ImportCapabilities,
   ImportTask,
+  PageResult,
   UserBatchStatusResult,
   UserStatus,
 } from '#/types/neye';
@@ -186,6 +195,34 @@ export const adminApi = {
   },
   getSystemStatus() {
     return apiRequest<AdminSystemStatus>('/admin/system-status');
+  },
+  getEventLogs(query: EventLogQuery) {
+    const params = toQueryString({ ...query });
+    return apiRequest<PageResult<EventLog>>(`/admin/event-logs?${params}`);
+  },
+  getEventLog(id: string) {
+    return apiRequest<EventLog>(`/admin/event-logs/${id}`);
+  },
+  getEventLogRetention() {
+    return apiRequest<EventLogRetention>('/admin/event-logs/retention');
+  },
+  updateEventLogRetention(payload: EventLogRetention) {
+    return apiRequest<EventLogRetentionResult>('/admin/event-logs/retention', {
+      body: JSON.stringify(payload),
+      method: 'PATCH',
+    });
+  },
+  previewEventLogClear(payload: EventLogClearSelection) {
+    return apiRequest<EventLogClearPreview>('/admin/event-logs/clear-preview', {
+      body: JSON.stringify(payload),
+      method: 'POST',
+    });
+  },
+  clearEventLogs(payload: EventLogClearPayload) {
+    return apiRequest<EventLogClearResult>('/admin/event-logs/clear', {
+      body: JSON.stringify(payload),
+      method: 'POST',
+    });
   },
   updateUsersStatus(payload: { status: UserStatus; userIds: string[] }) {
     return apiRequest<UserBatchStatusResult>('/users/batch-status', {
