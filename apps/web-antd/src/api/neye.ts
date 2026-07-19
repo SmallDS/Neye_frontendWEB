@@ -35,6 +35,23 @@ export class NeyeApiError extends Error {
   }
 }
 
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = '操作失败，请稍后重试',
+) {
+  if (error instanceof NeyeApiError && error.message.trim()) {
+    return error.message;
+  }
+  return fallback;
+}
+
+export function getLoginErrorMessage(error: unknown) {
+  if (error instanceof NeyeApiError && error.status === 401) {
+    return '账号或密码错误，请重新输入';
+  }
+  return getApiErrorMessage(error, '登录失败，请稍后重试');
+}
+
 interface NeyeApiRequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
@@ -170,10 +187,7 @@ export const adminApi = {
   getSystemStatus() {
     return apiRequest<AdminSystemStatus>('/admin/system-status');
   },
-  updateUsersStatus(payload: {
-    status: UserStatus;
-    userIds: string[];
-  }) {
+  updateUsersStatus(payload: { status: UserStatus; userIds: string[] }) {
     return apiRequest<UserBatchStatusResult>('/users/batch-status', {
       body: JSON.stringify(payload),
       method: 'POST',
@@ -188,9 +202,9 @@ export function normalizeApiErrorBody(
   if (typeof body !== 'object' || !body) {
     return {
       message:
-        typeof body === 'string' && body.trim()
+        status < 500 && typeof body === 'string' && body.trim()
           ? body
-          : `请求失败（${status}）`,
+          : defaultApiErrorMessage(status),
     };
   }
 
@@ -200,10 +214,12 @@ export function normalizeApiErrorBody(
       ? (value.error as Record<string, unknown>)
       : undefined;
   const rawMessage = value.message ?? nested?.message ?? value.error;
-  let message = `请求失败（${status}）`;
-  if (Array.isArray(rawMessage)) message = rawMessage.map(String).join('；');
-  else if (typeof rawMessage === 'string' && rawMessage.trim()) {
-    message = rawMessage;
+  let message = defaultApiErrorMessage(status);
+  if (status < 500) {
+    if (Array.isArray(rawMessage)) message = rawMessage.map(String).join('；');
+    else if (typeof rawMessage === 'string' && rawMessage.trim()) {
+      message = rawMessage;
+    }
   }
 
   return {
@@ -214,6 +230,34 @@ export function normalizeApiErrorBody(
       value.requestId ?? value.request_id ?? nested?.requestId,
     ),
   };
+}
+
+function defaultApiErrorMessage(status: number) {
+  switch (status) {
+    case 400: {
+      return '请求参数有误，请检查后重试';
+    }
+    case 401: {
+      return '登录状态已失效，请重新登录';
+    }
+    case 403: {
+      return '当前账号没有执行此操作的权限';
+    }
+    case 404: {
+      return '请求的服务不存在或已下线';
+    }
+    case 408: {
+      return '请求超时，请检查网络后重试';
+    }
+    case 429: {
+      return '操作过于频繁，请稍后再试';
+    }
+    default: {
+      return status >= 500
+        ? '服务器暂时不可用，请稍后重试'
+        : `请求失败（${status}）`;
+    }
+  }
 }
 
 function createApiError(status: number, body: unknown) {

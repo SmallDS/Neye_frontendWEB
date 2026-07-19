@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
   cleanCreatePayload,
   cleanPayload,
+  getApiErrorMessage,
+  getLoginErrorMessage,
   importTasksApi,
+  NeyeApiError,
   normalizeApiErrorBody,
   toQueryString,
 } from './neye';
@@ -52,6 +56,45 @@ describe('neye API utilities', () => {
         403,
       ),
     ).toMatchObject({ code: 'DENIED', message: '无权限' });
+  });
+
+  it('provides user-facing messages for status-only API errors', () => {
+    expect(normalizeApiErrorBody(null, 401).message).toBe(
+      '登录状态已失效，请重新登录',
+    );
+    expect(normalizeApiErrorBody({}, 500).message).toBe(
+      '服务器暂时不可用，请稍后重试',
+    );
+  });
+
+  it('maps real login failures to a stable Chinese message', () => {
+    const error = new NeyeApiError(
+      401,
+      { message: 'Invalid username or password' },
+      'Invalid username or password',
+    );
+    expect(getLoginErrorMessage(error)).toBe('账号或密码错误，请重新输入');
+  });
+
+  it('does not expose gateway HTML for server errors', () => {
+    expect(normalizeApiErrorBody('<html>Bad Gateway</html>', 502).message).toBe(
+      '服务器暂时不可用，请稍后重试',
+    );
+    expect(
+      normalizeApiErrorBody({ message: 'internal stack detail' }, 503).message,
+    ).toBe('服务器暂时不可用，请稍后重试');
+  });
+
+  it('uses API errors for display and hides unknown internal errors', () => {
+    expect(
+      getApiErrorMessage(
+        new NeyeApiError(0, null, '无法连接服务器，请检查网络后重试'),
+        '登录失败',
+      ),
+    ).toBe('无法连接服务器，请检查网络后重试');
+    expect(getApiErrorMessage(new Error('internal detail'), '登录失败')).toBe(
+      '登录失败',
+    );
   });
 
   it('omits empty query values', () => {

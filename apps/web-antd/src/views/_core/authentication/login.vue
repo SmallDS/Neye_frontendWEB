@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { VbenFormSchema } from '@vben/common-ui';
+import type { Recordable } from '@vben/types';
 
 import { computed, onBeforeUnmount, ref } from 'vue';
 
@@ -13,9 +14,11 @@ import {
   getWechatAuthConfigApi,
   pollWechatSessionApi,
 } from '#/api';
+import { getLoginErrorMessage } from '#/api/neye';
 import { useAuthStore } from '#/store';
 
 const authStore = useAuthStore();
+const loginError = ref('');
 const qrOpen = ref(false);
 const qrLoading = ref(false);
 const qrCodeDataUrl = ref('');
@@ -45,6 +48,15 @@ function stopPolling() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = undefined;
   pollActive.value = false;
+}
+
+async function handleLogin(values: Recordable<any>) {
+  loginError.value = '';
+  try {
+    await authStore.authLogin(values);
+  } catch (error) {
+    loginError.value = getLoginErrorMessage(error);
+  }
 }
 
 async function pollSession() {
@@ -113,6 +125,15 @@ onBeforeUnmount(stopPolling);
 
 <template>
   <div>
+    <a-alert
+      v-if="loginError"
+      class="mb-4"
+      closable
+      show-icon
+      type="error"
+      :message="loginError"
+      @close="loginError = ''"
+    />
     <AuthenticationLogin
       :form-schema="formSchema"
       :loading="authStore.loginLoading"
@@ -122,7 +143,7 @@ onBeforeUnmount(stopPolling);
       :show-register="false"
       :show-third-party-login="false"
       sub-title="请输入您的账户信息开始管理您的店铺"
-      @submit="authStore.authLogin"
+      @submit="handleLogin"
     />
     <a-divider plain>或</a-divider>
     <a-button class="w-full" size="large" @click="openWechatLogin">

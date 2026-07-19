@@ -39,32 +39,40 @@ export const useAuthStore = defineStore('auth', () => {
     accessStore.setAccessToken(accessToken);
     window.localStorage.removeItem('neye.selectedTenantId');
 
-    const [userInfo, accessCodes] = await Promise.all([
-      fetchUserInfo(),
-      getAccessCodesApi(),
-    ]);
-    userStore.setUserInfo(userInfo);
-    accessStore.setAccessCodes(accessCodes);
-    resetSessionTabs();
+    try {
+      const [userInfo, accessCodes] = await Promise.all([
+        fetchUserInfo(),
+        getAccessCodesApi(),
+      ]);
+      userStore.setUserInfo(userInfo);
+      accessStore.setAccessCodes(accessCodes);
+      resetSessionTabs();
 
-    if (accessStore.loginExpired) {
-      accessStore.setLoginExpired(false);
-    } else {
-      onSuccess
-        ? await onSuccess()
-        : await router.push(
-            userInfo.homePath || preferences.app.defaultHomePath,
-          );
-    }
+      if (accessStore.loginExpired) {
+        accessStore.setLoginExpired(false);
+      } else {
+        onSuccess
+          ? await onSuccess()
+          : await router.push(
+              userInfo.homePath || preferences.app.defaultHomePath,
+            );
+      }
 
-    if (userInfo.realName) {
-      notification.success({
-        description: `${$t('authentication.loginSuccessDesc')}:${userInfo.realName}`,
-        duration: 3,
-        message: $t('authentication.loginSuccess'),
-      });
+      if (userInfo.realName) {
+        notification.success({
+          description: `${$t('authentication.loginSuccessDesc')}:${userInfo.realName}`,
+          duration: 3,
+          message: $t('authentication.loginSuccess'),
+        });
+      }
+      return userInfo;
+    } catch (error) {
+      accessStore.setAccessToken(null);
+      accessStore.setAccessCodes([]);
+      userStore.setUserInfo(null);
+      resetSessionTabs();
+      throw error;
     }
-    return userInfo;
   }
 
   async function authLogin(
