@@ -12,6 +12,9 @@ import type {
   ImportCapabilities,
   ImportTask,
   PageResult,
+  PickupNotificationAttempt,
+  PickupNotificationQr,
+  WechatPickupNotificationSettings,
   UserBatchStatusResult,
   UserStatus,
 } from '#/types/neye';
@@ -189,7 +192,49 @@ export const importTasksApi = {
     });
   },
 };
+export const pickupNotificationsApi = {
+  getQr(fittingOrderId: string) {
+    return apiRequest<PickupNotificationQr>(
+      `/fitting-orders/${fittingOrderId}/pickup-subscription-qr`,
+    );
+  },
+  markReady(fittingOrderId: string) {
+    return apiRequest(`/fitting-orders/${fittingOrderId}/ready-for-pickup`, {
+      method: 'PATCH',
+    });
+  },
+  retry(fittingOrderId: string, reason: string) {
+    return apiRequest(
+      `/fitting-orders/${fittingOrderId}/pickup-notification/retry`,
+      {
+        body: JSON.stringify({ reason }),
+        method: 'POST',
+      },
+    );
+  },
+  getAttempts(fittingOrderId: string) {
+    return apiRequest<{ items: PickupNotificationAttempt[] }>(
+      `/fitting-orders/${fittingOrderId}/pickup-notification/attempts`,
+    );
+  },
+};
 export const adminApi = {
+  getWechatPickupNotification() {
+    return apiRequest<WechatPickupNotificationSettings>(
+      '/system-settings/wechat-pickup-notification',
+    );
+  },
+  updateWechatPickupNotification(
+    payload: Omit<
+      WechatPickupNotificationSettings,
+      'valid' | 'validationErrors'
+    >,
+  ) {
+    return apiRequest<WechatPickupNotificationSettings>(
+      '/system-settings/wechat-pickup-notification',
+      { body: JSON.stringify(payload), method: 'PATCH' },
+    );
+  },
   getOverview() {
     return apiRequest<AdminOverview>('/admin/overview');
   },

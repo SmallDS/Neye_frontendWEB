@@ -13,6 +13,7 @@ import { formatDate, genderText, today } from '#/utils/neye-format';
 
 import FittingOrderModal from '../components/FittingOrderModal.vue';
 import OptometryOrderPanel from '../components/OptometryOrderPanel.vue';
+import PickupNotificationPanel from '../components/PickupNotificationPanel.vue';
 import {
   customerWorkspaceLocation,
   resolveWorkspaceSelection,
@@ -38,6 +39,13 @@ const optometryPanel = ref<OptometryPanelExpose>();
 const optometryOrders = computed(() =>
   sortOptometryOrders(customer.value?.optometryOrders ?? []),
 );
+const pickupOrderId = computed(() => {
+  if (selectedFittingId.value) return selectedFittingId.value;
+  return (customer.value?.fittingOrders ?? [])
+    .filter((item) => item.optometryOrderId === selectedOptometryId.value)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0]
+    ?.id;
+});
 
 function fittingCount(orderId: string) {
   return (customer.value?.fittingOrders ?? []).filter(
@@ -201,7 +209,9 @@ watch(customerId, () => void load(), { immediate: true });
           <div class="neye-sidebar-head">
             <div>
               <h2 class="neye-section-title">验光记录</h2>
-              <p class="neye-page-subtitle">共 {{ optometryOrders.length }} 张</p>
+              <p class="neye-page-subtitle">
+                共 {{ optometryOrders.length }} 张
+              </p>
             </div>
             <a-button
               type="text"
@@ -224,30 +234,42 @@ watch(customerId, () => void load(), { immediate: true });
               ]"
               @click="selectOptometry(item.id)"
             >
-              <span class="neye-optometry-list-date">{{ formatDate(item.optometryDate) }}</span>
+              <span class="neye-optometry-list-date">{{
+                formatDate(item.optometryDate)
+              }}</span>
               <span class="neye-optometry-list-count">
                 配镜单 {{ fittingCount(item.id) }} 张
               </span>
             </button>
           </div>
           <a-empty v-else :image="false" description="暂无验光记录">
-            <a-button type="primary" @click="createOptometryOrder">新建验光单</a-button>
+            <a-button type="primary" @click="createOptometryOrder"
+              >新建验光单</a-button
+            >
           </a-empty>
         </aside>
 
         <main class="neye-customer-detail-pane">
-          <OptometryOrderPanel
-            v-if="selectedOptometryId"
-            :key="selectedOptometryId"
-            ref="optometryPanel"
-            :order-id="selectedOptometryId"
-            @deleted="handleOptometryDeleted"
-            @open-fitting="openFitting"
-            @updated="refreshCustomerRecords"
-          />
+          <template v-if="selectedOptometryId">
+            <OptometryOrderPanel
+              :key="selectedOptometryId"
+              ref="optometryPanel"
+              :order-id="selectedOptometryId"
+              @deleted="handleOptometryDeleted"
+              @open-fitting="openFitting"
+              @updated="refreshCustomerRecords"
+            />
+            <PickupNotificationPanel
+              v-if="pickupOrderId"
+              :order-id="pickupOrderId"
+              @changed="refreshCustomerRecords"
+            />
+          </template>
           <section v-else class="neye-panel neye-workspace-empty">
             <a-empty description="该客户还没有验光单">
-              <a-button type="primary" @click="createOptometryOrder">新建验光单</a-button>
+              <a-button type="primary" @click="createOptometryOrder"
+                >新建验光单</a-button
+              >
             </a-empty>
           </section>
         </main>

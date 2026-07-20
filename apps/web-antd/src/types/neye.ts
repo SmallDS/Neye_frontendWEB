@@ -3,6 +3,18 @@ export type Gender = 'female' | 'male' | 'unknown';
 export type ProductItemCategory = 'frame' | 'lens' | 'other';
 export type TenantStatus = 'active' | 'disabled';
 export type UserStatus = 'active' | 'disabled';
+export type PickupNotificationStatus =
+  | 'failed'
+  | 'pending'
+  | 'retrying'
+  | 'sent'
+  | 'unsubscribed';
+export type PickupNotificationSource =
+  | 'order_no'
+  | 'pickup_tip'
+  | 'ready_for_pickup_at'
+  | 'store_name';
+
 export type ImportTaskStatus =
   | 'canceled'
   | 'canceling'
@@ -211,6 +223,51 @@ export interface FittingOrder {
   totalAmount: string;
   remark?: null | string;
   createdAt: string;
+  readyForPickupAt?: null | string;
+  pickupNotification?: PickupNotificationProjection;
+}
+export interface PickupNotificationProjection {
+  status: PickupNotificationStatus;
+  receiverSubscribed: boolean;
+  receiverLocked: boolean;
+  subscribedAt?: null | string;
+  attempts: number;
+  maxAttemptsPerCycle: number;
+  nextRetryAt?: null | string;
+  sentAt?: null | string;
+  failureCode?: null | string;
+  failureSummary?: null | string;
+  qrExpiresAt?: null | string;
+}
+
+export interface PickupNotificationQr {
+  qrCodeDataUrl: string;
+  expiresAt: string;
+  page: string;
+}
+
+export interface PickupNotificationAttempt {
+  cycle: number;
+  attemptNo: number;
+  startedAt: string;
+  finishedAt?: null | string;
+  result: 'permanent_failure' | 'processing' | 'sent' | 'temporary_failure';
+  wechatErrorCode?: null | number;
+  errorSummary?: null | string;
+  tokenRefreshed: boolean;
+  nextRetryAt?: null | string;
+}
+
+export interface WechatPickupNotificationSettings {
+  enabled: boolean;
+  templateId: string;
+  pickupTip: string;
+  keywordMapping: Array<{
+    keyword: string;
+    source: PickupNotificationSource;
+  }>;
+  valid: boolean;
+  validationErrors: string[];
 }
 export type SystemHealthStatus = 'error' | 'ok' | 'warning';
 
