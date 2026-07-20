@@ -12,7 +12,7 @@ export type PickupNotificationStatus =
 export type PickupNotificationSource =
   | 'order_no'
   | 'pickup_tip'
-  | 'ready_for_pickup_at'
+  | 'store_phone'
   | 'store_name';
 
 export type ImportTaskStatus =

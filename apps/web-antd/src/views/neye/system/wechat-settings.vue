@@ -31,7 +31,7 @@ const envVersionOptions = [
 const sourceLabels: Record<PickupNotificationSource, string> = {
   order_no: '配镜单号',
   store_name: '门店名称',
-  ready_for_pickup_at: '可取时间',
+  store_phone: '门店电话（来自租户联系电话）',
   pickup_tip: '取镜提示',
 };
 const form = reactive({
@@ -48,8 +48,8 @@ const pickupForm = reactive<WechatPickupNotificationSettings>({
   pickupTip: '您的眼镜已制作完成，请到店取镜。',
   keywordMapping: [
     { keyword: 'character_string1', source: 'order_no' },
-    { keyword: 'thing2', source: 'store_name' },
-    { keyword: 'time3', source: 'ready_for_pickup_at' },
+    { keyword: 'name2', source: 'store_name' },
+    { keyword: 'phone_number3', source: 'store_phone' },
     { keyword: 'thing4', source: 'pickup_tip' },
   ],
   valid: false,

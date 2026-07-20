@@ -25,8 +25,8 @@ const validSettings = {
   pickupTip: '请到店取镜',
   keywordMapping: [
     { keyword: 'character_string1', source: 'order_no' as const },
-    { keyword: 'thing2', source: 'store_name' as const },
-    { keyword: 'time3', source: 'ready_for_pickup_at' as const },
+    { keyword: 'name2', source: 'store_name' as const },
+    { keyword: 'phone_number3', source: 'store_phone' as const },
     { keyword: 'thing4', source: 'pickup_tip' as const },
   ],
 };
@@ -80,6 +80,26 @@ describe('pickup notification view state', () => {
     });
   });
 
+  it('accepts nameXX and requires phone_numberXX for store phone', () => {
+    const screenshotMapping = validSettings.keywordMapping.map((item) =>
+      item.source === 'store_name' ? { ...item, keyword: 'name3' } : item,
+    );
+    expect(
+      validatePickupSettings({
+        ...validSettings,
+        keywordMapping: screenshotMapping,
+      }),
+    ).toEqual([]);
+    const legacyTimeMapping = validSettings.keywordMapping.map((item) =>
+      item.source === 'store_phone' ? { ...item, keyword: 'time3' } : item,
+    );
+    expect(
+      validatePickupSettings({
+        ...validSettings,
+        keywordMapping: legacyTimeMapping,
+      }),
+    ).toContain('门店电话必须映射到 phone_numberXX 关键词');
+  });
   it('validates enabled configuration while allowing disabled drafts', () => {
     expect(validatePickupSettings(validSettings)).toEqual([]);
     expect(
