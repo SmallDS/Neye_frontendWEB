@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'NEyeCustomers' });
 import { computed, h, onMounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { Modal, message } from 'ant-design-vue';
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { apiRequest, cleanPayload } from '#/api/neye';
@@ -9,7 +9,15 @@ import { useNeyeTenantScope } from '#/composables/useNeyeTenantScope';
 import type { BatchDeleteResult, Customer, Gender, PageResult } from '#/types/neye';
 import { formatDate, genderText } from '#/utils/neye-format';
 
+import {
+  customerDetailLocation,
+  customerListLocation,
+  parseCustomerListState,
+} from '../customer-list-navigation';
+
+const route = useRoute();
 const router = useRouter();
+const initialListState = parseCustomerListState(route.query);
 const loading = ref(false);
 const createOpen = ref(false);
 const editOpen = ref(false);
@@ -22,7 +30,7 @@ const rowSelection = computed(() => ({
     selectedRowKeys.value = keys.map(String);
   },
 }));
-const query = reactive({ keyword: '', page: 1, pageSize: 10 });
+const query = reactive({ ...initialListState, pageSize: 10 });
 const result = ref<PageResult<Customer>>({ items: [], total: 0, page: 1, pageSize: 10 });
 const form = reactive<{ name: string; phone: string; gender: Gender; age?: number; remark: string }>({ name: '', phone: '', gender: 'unknown', age: undefined, remark: '' });
 const editForm = reactive<{ name: string; phone: string; gender: Gender; age?: number; remark: string }>({ name: '', phone: '', gender: 'unknown', age: undefined, remark: '' });
@@ -52,6 +60,7 @@ async function load(page = query.page) {
   query.page = page;
   selectedRowKeys.value = [];
   try {
+    await router.replace(customerListLocation(query));
     await loadTenants();
     if (!isTenantReady.value) {
       result.value = { items: [], total: 0, page: query.page, pageSize: query.pageSize };
@@ -68,6 +77,15 @@ async function load(page = query.page) {
   }
 }
 
+function openCustomerDetail(customerId: string) {
+  return router.push(
+    customerDetailLocation(
+      customerId,
+      parseCustomerListState(route.query),
+    ),
+  );
+}
+
 function resetForm() {
   Object.assign(form, { name: '', phone: '', gender: 'unknown', age: undefined, remark: '' });
 }
@@ -82,7 +100,7 @@ async function submitCreate() {
     message.success('客户已创建');
     createOpen.value = false;
     resetForm();
-    router.push(`/neye/customers/${customer.id}`);
+    openCustomerDetail(customer.id);
   } catch (error) {
     message.error(error instanceof Error ? error.message : '创建失败');
   }
@@ -177,7 +195,7 @@ onMounted(() => load());
           <template v-else-if="column.key === 'createdAt'">{{ formatDate(record.createdAt) }}</template>
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a-button type="link" class="neye-link-button" @click="router.push(`/neye/customers/${record.id}`)">详情</a-button>
+              <a-button type="link" class="neye-link-button" @click="openCustomerDetail(record.id)">详情</a-button>
               <a-button type="link" class="neye-link-button" :icon="h(EditOutlined)" @click="openEdit(record)">编辑</a-button>
               <a-button danger type="link" class="neye-link-button" :icon="h(DeleteOutlined)" @click="removeCustomer(record)">删除</a-button>
             </a-space>

@@ -14,6 +14,7 @@ import { formatDate, genderText, today } from '#/utils/neye-format';
 import FittingOrderModal from '../components/FittingOrderModal.vue';
 import OptometryOrderPanel from '../components/OptometryOrderPanel.vue';
 import PickupNotificationPanel from '../components/PickupNotificationPanel.vue';
+import { resolveCustomerListReturnTo } from '../customer-list-navigation';
 import {
   customerWorkspaceLocation,
   resolveWorkspaceSelection,
@@ -57,18 +58,33 @@ function queryValue(value: unknown) {
   return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
 }
 
+const customerListReturnTo = computed(() =>
+  resolveCustomerListReturnTo(route.query.returnTo),
+);
+
 async function syncRoute(optometryId?: string, fittingId?: string) {
   const currentOptometryId = queryValue(route.query.optometryId);
   const currentFittingId = queryValue(route.query.fittingId);
+  const currentReturnTo = queryValue(route.query.returnTo);
   if (
     currentOptometryId === (optometryId ?? '') &&
-    currentFittingId === (fittingId ?? '')
+    currentFittingId === (fittingId ?? '') &&
+    currentReturnTo === customerListReturnTo.value
   ) {
     return;
   }
-  await router.replace(
-    customerWorkspaceLocation(customerId.value, optometryId, fittingId),
+  const workspaceLocation = customerWorkspaceLocation(
+    customerId.value,
+    optometryId,
+    fittingId,
   );
+  await router.replace({
+    ...workspaceLocation,
+    query: {
+      ...workspaceLocation.query,
+      returnTo: customerListReturnTo.value,
+    },
+  });
 }
 
 async function fetchCustomer() {
@@ -192,7 +208,7 @@ watch(customerId, () => void load(), { immediate: true });
           </p>
         </div>
         <a-space wrap>
-          <a-button @click="router.push('/neye/customers')">返回列表</a-button>
+          <a-button @click="router.push(customerListReturnTo)">返回列表</a-button>
           <a-button
             type="primary"
             :icon="h(PlusOutlined)"
