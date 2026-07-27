@@ -2,6 +2,7 @@
 defineOptions({ name: 'NEyeCustomers' });
 import { computed, h, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useTabbarStore } from '@vben/stores';
 import { Modal, message } from 'ant-design-vue';
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { apiRequest, cleanPayload } from '#/api/neye';
@@ -13,10 +14,12 @@ import {
   customerDetailLocation,
   customerListLocation,
   parseCustomerListState,
+  staleCustomerListTabKeys,
 } from '../customer-list-navigation';
 
 const route = useRoute();
 const router = useRouter();
+const tabbarStore = useTabbarStore();
 const initialListState = parseCustomerListState(route.query);
 const loading = ref(false);
 const createOpen = ref(false);
@@ -163,11 +166,20 @@ function handleTableChange(pagination: { current?: number }) {
   load(Number(pagination.current || 1));
 }
 
+async function closeStaleCustomerListTabs() {
+  for (const key of staleCustomerListTabKeys(tabbarStore.tabs)) {
+    await tabbarStore.closeTabByKey(key, router);
+  }
+}
+
 function tenantFilterOption(input: string, option?: { label?: string }) {
   return String(option?.label ?? '').toLowerCase().includes(input.toLowerCase());
 }
 
-onMounted(() => load());
+onMounted(async () => {
+  await closeStaleCustomerListTabs();
+  await load();
+});
 </script>
 
 <template>

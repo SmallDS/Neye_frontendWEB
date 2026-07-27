@@ -57,3 +57,14 @@ export function resolveCustomerListReturnTo(value: unknown) {
   }
   return '/neye/customers';
 }
+export function staleCustomerListTabKeys(
+  tabs: Array<{ key?: unknown; name?: unknown }>,
+) {
+  return tabs.flatMap((tab) =>
+    tab.name === 'NEyeCustomers' &&
+    typeof tab.key === 'string' &&
+    tab.key.startsWith('/neye/customers?')
+      ? [tab.key]
+      : [],
+  );
+}

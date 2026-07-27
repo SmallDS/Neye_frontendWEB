@@ -19,6 +19,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('#/views/neye/customers/index.vue'),
     meta: {
       authority: ['admin', 'staff'],
+      fullPathKey: false,
       icon: 'lucide:users',
       keepAlive: false,
       order: -4,

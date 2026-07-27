@@ -1,14 +1,37 @@
 import { describe, expect, it } from 'vitest';
 
+import neyeRoutes from '#/router/routes/modules/neye';
+
 import {
   customerDetailLocation,
   customerListLocation,
   customerListPath,
   parseCustomerListState,
   resolveCustomerListReturnTo,
+  staleCustomerListTabKeys,
 } from './customer-list-navigation';
 
 describe('customer list navigation', () => {
+  it('reuses one tab when the list query changes', () => {
+    const customerListRoute = neyeRoutes.find(
+      (route) => route.name === 'NEyeCustomers',
+    );
+    expect(customerListRoute?.meta?.fullPathKey).toBe(false);
+  });
+
+  it('finds only legacy customer list tabs created from query strings', () => {
+    expect(
+      staleCustomerListTabKeys([
+        { key: '/neye/customers', name: 'NEyeCustomers' },
+        {
+          key: '/neye/customers?keyword=test&page=2',
+          name: 'NEyeCustomers',
+        },
+        { key: '/neye/customers/customer-1', name: 'NEyeCustomerDetail' },
+      ]),
+    ).toEqual(['/neye/customers?keyword=test&page=2']);
+  });
+
   it('restores keyword and a valid page from route query', () => {
     expect(
       parseCustomerListState({ keyword: ['张三'], page: '3' }),
