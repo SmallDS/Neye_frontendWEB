@@ -25,9 +25,15 @@ import '../neye.css';
 import { adminApi } from '#/api/neye';
 
 import {
+  eventLogActionText,
   eventLogCategoryText,
   eventLogLevelInfo,
+  eventLogModuleOptions,
+  eventLogModuleText,
+  eventLogReasonText,
+  eventLogResourceTypeText,
   eventLogResultInfo,
+  eventLogSystemMessageText,
   formatEventLogMetadata,
   validateEventLogClear,
 } from './event-logs';
@@ -73,7 +79,7 @@ const columns = [
     title: '操作人',
     width: 130,
   },
-  { dataIndex: 'tenantId', key: 'tenantId', title: '租户 ID', width: 190 },
+  { dataIndex: 'tenantId', key: 'tenantId', title: '店铺 ID', width: 190 },
   { dataIndex: 'requestId', key: 'requestId', title: '请求 ID', width: 220 },
   { key: 'actionColumn', fixed: 'right', title: '操作', width: 80 },
 ];
@@ -312,7 +318,12 @@ onMounted(() => {
             { label: '失败', value: 'FAILED' },
           ]"
         />
-        <a-input v-model:value="query.module" allow-clear placeholder="模块" />
+        <a-select
+          v-model:value="query.module"
+          allow-clear
+          placeholder="模块"
+          :options="eventLogModuleOptions"
+        />
         <a-input
           v-model:value="query.actorUsername"
           allow-clear
@@ -321,7 +332,7 @@ onMounted(() => {
         <a-input
           v-model:value="query.tenantId"
           allow-clear
-          placeholder="租户 ID"
+          placeholder="店铺 ID"
         />
         <a-input
           v-model:value="query.requestId"
@@ -377,6 +388,12 @@ onMounted(() => {
               {{ eventLogResultInfo(record.result).text }}
             </a-tag>
           </template>
+          <template v-else-if="column.key === 'module'">
+            {{ eventLogModuleText(record.module) }}
+          </template>
+          <template v-else-if="column.key === 'action'">
+            {{ eventLogActionText(record.action) }}
+          </template>
           <template v-else-if="column.key === 'actorUsername'">
             {{ record.actorUsername || '-' }}
           </template>
@@ -426,7 +443,8 @@ onMounted(() => {
             </a-space>
           </a-descriptions-item>
           <a-descriptions-item label="模块 / 事件">
-            {{ detail.module }} / {{ detail.action }}
+            {{ eventLogModuleText(detail.module) }} /
+            {{ eventLogActionText(detail.action) }}
           </a-descriptions-item>
           <a-descriptions-item label="操作人">
             {{ detail.actorUsername || '-' }}
@@ -434,11 +452,11 @@ onMounted(() => {
               （{{ detail.actorUserId }}）
             </span>
           </a-descriptions-item>
-          <a-descriptions-item label="租户 ID">
+          <a-descriptions-item label="店铺 ID">
             <span class="event-log-mono">{{ detail.tenantId || '-' }}</span>
           </a-descriptions-item>
           <a-descriptions-item label="资源">
-            {{ detail.resourceType || '-' }}
+            {{ eventLogResourceTypeText(detail.resourceType) }}
             <span v-if="detail.resourceId" class="event-log-mono">
               （{{ detail.resourceId }}）
             </span>
@@ -450,10 +468,10 @@ onMounted(() => {
             <span class="event-log-mono">{{ detail.ipAddress || '-' }}</span>
           </a-descriptions-item>
           <a-descriptions-item label="原因">
-            {{ detail.reason || '-' }}
+            {{ eventLogReasonText(detail.action, detail.reason) }}
           </a-descriptions-item>
           <a-descriptions-item label="错误摘要">
-            {{ detail.errorSummary || '-' }}
+            {{ eventLogSystemMessageText(detail.errorSummary) }}
           </a-descriptions-item>
           <a-descriptions-item label="附加信息">
             <pre class="event-log-metadata">{{
