@@ -35,8 +35,8 @@ const rowSelection = computed(() => ({
 }));
 const query = reactive({ ...initialListState, pageSize: 10 });
 const result = ref<PageResult<Customer>>({ items: [], total: 0, page: 1, pageSize: 10 });
-const form = reactive<{ name: string; phone: string; gender: Gender; age?: number; remark: string }>({ name: '', phone: '', gender: 'unknown', age: undefined, remark: '' });
-const editForm = reactive<{ name: string; phone: string; gender: Gender; age?: number; remark: string }>({ name: '', phone: '', gender: 'unknown', age: undefined, remark: '' });
+const form = reactive<{ name: string; phone: string; gender: Gender; remark: string }>({ name: '', phone: '', gender: 'unknown', remark: '' });
+const editForm = reactive<{ name: string; phone: string; gender: Gender; remark: string }>({ name: '', phone: '', gender: 'unknown', remark: '' });
 const genderOptions = [{ value: 'unknown', label: '未知' }, { value: 'male', label: '男' }, { value: 'female', label: '女' }];
 const {
   appendTenantParam,
@@ -53,7 +53,6 @@ const columns = [
   { title: '姓名', dataIndex: 'name', key: 'name' },
   { title: '手机号', dataIndex: 'phone', key: 'phone' },
   { title: '性别', dataIndex: 'gender', key: 'gender', width: 90 },
-  { title: '年龄', dataIndex: 'age', key: 'age', width: 90 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 130 },
   { title: '操作', key: 'action', width: 210 },
 ];
@@ -90,7 +89,7 @@ function openCustomerDetail(customerId: string) {
 }
 
 function resetForm() {
-  Object.assign(form, { name: '', phone: '', gender: 'unknown', age: undefined, remark: '' });
+  Object.assign(form, { name: '', phone: '', gender: 'unknown', remark: '' });
 }
 
 async function submitCreate() {
@@ -111,7 +110,7 @@ async function submitCreate() {
 
 function openEdit(item: Customer) {
   editingCustomer.value = item;
-  Object.assign(editForm, { name: item.name, phone: item.phone ?? '', gender: item.gender, age: item.age ?? undefined, remark: item.remark ?? '' });
+  Object.assign(editForm, { name: item.name, phone: item.phone ?? '', gender: item.gender, remark: item.remark ?? '' });
   editOpen.value = true;
 }
 
@@ -203,7 +202,6 @@ onMounted(async () => {
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'phone'">{{ record.phone || '-' }}</template>
           <template v-else-if="column.key === 'gender'">{{ genderText(record.gender) }}</template>
-          <template v-else-if="column.key === 'age'">{{ record.age ?? '-' }}</template>
           <template v-else-if="column.key === 'createdAt'">{{ formatDate(record.createdAt) }}</template>
           <template v-else-if="column.key === 'action'">
             <a-space>
@@ -222,7 +220,6 @@ onMounted(async () => {
           <a-form-item label="姓名" name="name" :rules="[{ required: true, message: '请填写姓名' }]"><a-input v-model:value="form.name" /></a-form-item>
           <a-form-item label="手机号" name="phone"><a-input v-model:value="form.phone" /></a-form-item>
           <a-form-item label="性别" name="gender"><a-select v-model:value="form.gender" :options="genderOptions" /></a-form-item>
-          <a-form-item label="年龄" name="age"><a-input-number v-model:value="form.age" :min="0" :max="150" style="width: 100%" /></a-form-item>
         </div>
         <a-form-item label="备注" name="remark"><a-textarea v-model:value="form.remark" :rows="3" /></a-form-item>
         <a-space><a-button type="primary" html-type="submit">保存</a-button><a-button @click="createOpen = false">取消</a-button></a-space>
@@ -235,7 +232,6 @@ onMounted(async () => {
           <a-form-item label="姓名" name="name" :rules="[{ required: true, message: '请填写姓名' }]"><a-input v-model:value="editForm.name" /></a-form-item>
           <a-form-item label="手机号" name="phone"><a-input v-model:value="editForm.phone" /></a-form-item>
           <a-form-item label="性别" name="gender"><a-select v-model:value="editForm.gender" :options="genderOptions" /></a-form-item>
-          <a-form-item label="年龄" name="age"><a-input-number v-model:value="editForm.age" :min="0" :max="150" style="width: 100%" /></a-form-item>
         </div>
         <a-form-item label="备注" name="remark"><a-textarea v-model:value="editForm.remark" :rows="3" /></a-form-item>
         <a-space><a-button type="primary" html-type="submit">保存</a-button><a-button @click="editOpen = false">取消</a-button></a-space>

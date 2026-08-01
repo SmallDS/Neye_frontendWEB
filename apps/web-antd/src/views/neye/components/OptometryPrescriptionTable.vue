@@ -15,11 +15,13 @@ import {
 import {
   defaultOptometryStyle,
   hasTextValue,
+  moveOptometryField,
   normalizeOptometryStyle,
   optometryExtraFields,
   optometryFieldName,
   optometryRows,
   optometryValueFields,
+  orderOptometryFields,
   type OptometryStyleConfig,
   type OptometrySuffix,
 } from '../optometry-prescription';
@@ -50,12 +52,17 @@ const emit = defineEmits<{
   toggleExtra: [fieldKey: string];
   toggleRemark: [];
   toggleValueField: [suffix: OptometrySuffix];
+  updateExtraFieldOrder: [order: string[]];
+  updateValueFieldOrder: [order: OptometrySuffix[]];
 }>();
 
 const tableRoot = ref<HTMLElement>();
 const activeQuickInput = ref<ActiveQuickInput>();
 const activeInputElement = ref<HTMLInputElement>();
 const quickBarStyle = ref<Record<string, string>>({});
+const draggedGroup = ref<'extra' | 'value'>();
+const draggedKey = ref<string>();
+const dragOverKey = ref<string>();
 let blurTimer: number | undefined;
 
 const currentStyle = computed(() =>
@@ -63,15 +70,29 @@ const currentStyle = computed(() =>
 );
 const valueModel = computed(() => props.modelValue ?? {});
 const isStyleMode = computed(() => props.mode === 'style');
+const orderedValueFields = computed(() =>
+  orderOptometryFields(
+    optometryValueFields,
+    currentStyle.value.valueFieldOrder,
+    (field) => field.suffix,
+  ),
+);
+const orderedExtraFields = computed(() =>
+  orderOptometryFields(
+    optometryExtraFields,
+    currentStyle.value.extraFieldOrder,
+    (field) => field.key,
+  ),
+);
 const visibleValueFields = computed(() =>
-  optometryValueFields.filter(
+  orderedValueFields.value.filter(
     (field) =>
       isStyleMode.value ||
       !currentStyle.value.hiddenValueFields.includes(field.suffix),
   ),
 );
 const visibleExtraFields = computed(() =>
-  optometryExtraFields.filter(
+  orderedExtraFields.value.filter(
     (field) =>
       isStyleMode.value ||
       !currentStyle.value.hiddenExtraFields.includes(field.key),
@@ -114,6 +135,104 @@ function isValueFieldHidden(suffix: OptometrySuffix) {
 
 function isExtraHidden(key: string) {
   return currentStyle.value.hiddenExtraFields.includes(key);
+}
+
+function sortableItemLabel(
+  group: 'extra' | 'value',
+  key: string,
+  index: number,
+  total: number,
+) {
+  const hidden =
+    group === 'value'
+      ? isValueFieldHidden(key as OptometrySuffix)
+      : isExtraHidden(key);
+  return `${hidden ? '已隐藏' : '显示中'}，第 ${index + 1} 项，共 ${total} 项；可拖动或使用左右方向键调整顺序`;
+}
+
+function moveSortableItem(
+  group: 'extra' | 'value',
+  key: string,
+  targetIndex: number,
+) {
+  if (group === 'value') {
+    emit(
+      'updateValueFieldOrder',
+      moveOptometryField(
+        currentStyle.value.valueFieldOrder,
+        key as OptometrySuffix,
+        targetIndex,
+      ),
+    );
+    return;
+  }
+  emit(
+    'updateExtraFieldOrder',
+    moveOptometryField(currentStyle.value.extraFieldOrder, key, targetIndex),
+  );
+}
+
+function handleSortableKeydown(
+  event: KeyboardEvent,
+  group: 'extra' | 'value',
+  key: string,
+  index: number,
+) {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+  event.preventDefault();
+  moveSortableItem(group, key, index + (event.key === 'ArrowLeft' ? -1 : 1));
+}
+
+function handleDragStart(
+  event: DragEvent,
+  group: 'extra' | 'value',
+  key: string,
+) {
+  draggedGroup.value = group;
+  draggedKey.value = key;
+  dragOverKey.value = key;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', key);
+  }
+}
+
+function handleDragOver(
+  event: DragEvent,
+  group: 'extra' | 'value',
+  key: string,
+) {
+  if (draggedGroup.value !== group || !draggedKey.value) return;
+  event.preventDefault();
+  dragOverKey.value = key;
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+}
+
+function handleDrop(group: 'extra' | 'value', targetKey: string) {
+  const dragged = draggedKey.value;
+  if (draggedGroup.value !== group || !dragged || dragged === targetKey) {
+    finishDrag();
+    return;
+  }
+  const targetIndex =
+    group === 'value'
+      ? currentStyle.value.valueFieldOrder.indexOf(
+          targetKey as OptometrySuffix,
+        )
+      : currentStyle.value.extraFieldOrder.indexOf(targetKey);
+  moveSortableItem(group, dragged, targetIndex);
+  finishDrag();
+}
+
+function finishDrag() {
+  draggedGroup.value = undefined;
+  draggedKey.value = undefined;
+  dragOverKey.value = undefined;
+}
+
+function toggleSortableItem(group: 'extra' | 'value', key: string) {
+  if (group === 'value') emit('toggleValueField', key as OptometrySuffix);
+  else emit('toggleExtra', key);
 }
 
 function clearBlurTimer() {
@@ -359,6 +478,126 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="tableRoot" class="neye-prescription-scroll">
+    <div v-if="isStyleMode" class="neye-field-sorters">
+      <p class="neye-field-sorters-hint">
+        拖动字段手柄调整显示位置，也可聚焦字段后使用左右方向键，或点击两侧按钮。
+      </p>
+      <section class="neye-field-sorter-section" aria-labelledby="value-field-order-title">
+        <h3 id="value-field-order-title" class="neye-field-sorter-title">
+          主字段顺序
+        </h3>
+        <div class="neye-field-sorter-list" role="list">
+          <div
+            v-for="(field, index) in orderedValueFields"
+            :key="field.suffix"
+            class="neye-field-sorter-item"
+            :class="{
+              'is-dragging': draggedGroup === 'value' && draggedKey === field.suffix,
+              'is-drop-target': draggedGroup === 'value' && dragOverKey === field.suffix && draggedKey !== field.suffix,
+              'is-hidden': isValueFieldHidden(field.suffix),
+            }"
+            role="listitem"
+            tabindex="0"
+            :aria-label="sortableItemLabel('value', field.suffix, index, orderedValueFields.length)"
+            @dragover="handleDragOver($event, 'value', field.suffix)"
+            @drop.prevent="handleDrop('value', field.suffix)"
+            @keydown="handleSortableKeydown($event, 'value', field.suffix, index)"
+          >
+            <span
+              class="neye-field-drag-handle"
+              draggable="true"
+              :aria-label="`拖动${field.label}`"
+              @dragend="finishDrag"
+              @dragstart="handleDragStart($event, 'value', field.suffix)"
+            >⋮⋮</span>
+            <span class="neye-field-sorter-name">{{ field.label }}</span>
+            <button
+              type="button"
+              class="neye-field-visibility"
+              :aria-label="`${field.label}${isValueFieldHidden(field.suffix) ? '已隐藏，点击显示' : '显示中，点击隐藏'}`"
+              @click.stop="toggleSortableItem('value', field.suffix)"
+              @keydown.stop
+            >
+              {{ isValueFieldHidden(field.suffix) ? '已隐藏' : '显示中' }}
+            </button>
+            <button
+              type="button"
+              class="neye-field-move-button"
+              :disabled="index === 0"
+              :aria-label="`${field.label}左移`"
+              @click.stop="moveSortableItem('value', field.suffix, index - 1)"
+              @keydown.stop
+            >←</button>
+            <button
+              type="button"
+              class="neye-field-move-button"
+              :disabled="index === orderedValueFields.length - 1"
+              :aria-label="`${field.label}右移`"
+              @click.stop="moveSortableItem('value', field.suffix, index + 1)"
+              @keydown.stop
+            >→</button>
+          </div>
+        </div>
+      </section>
+      <section class="neye-field-sorter-section" aria-labelledby="extra-field-order-title">
+        <h3 id="extra-field-order-title" class="neye-field-sorter-title">
+          附加字段顺序
+        </h3>
+        <div class="neye-field-sorter-list" role="list">
+          <div
+            v-for="(field, index) in orderedExtraFields"
+            :key="field.key"
+            class="neye-field-sorter-item"
+            :class="{
+              'is-dragging': draggedGroup === 'extra' && draggedKey === field.key,
+              'is-drop-target': draggedGroup === 'extra' && dragOverKey === field.key && draggedKey !== field.key,
+              'is-hidden': isExtraHidden(field.key),
+            }"
+            role="listitem"
+            tabindex="0"
+            :aria-label="sortableItemLabel('extra', field.key, index, orderedExtraFields.length)"
+            @dragover="handleDragOver($event, 'extra', field.key)"
+            @drop.prevent="handleDrop('extra', field.key)"
+            @keydown="handleSortableKeydown($event, 'extra', field.key, index)"
+          >
+            <span
+              class="neye-field-drag-handle"
+              draggable="true"
+              :aria-label="`拖动${field.label}`"
+              @dragend="finishDrag"
+              @dragstart="handleDragStart($event, 'extra', field.key)"
+            >⋮⋮</span>
+            <span class="neye-field-sorter-name">{{ field.compactLabel }}</span>
+            <button
+              type="button"
+              class="neye-field-visibility"
+              :aria-label="`${field.label}${isExtraHidden(field.key) ? '已隐藏，点击显示' : '显示中，点击隐藏'}`"
+              @click.stop="toggleSortableItem('extra', field.key)"
+              @keydown.stop
+            >
+              {{ isExtraHidden(field.key) ? '已隐藏' : '显示中' }}
+            </button>
+            <button
+              type="button"
+              class="neye-field-move-button"
+              :disabled="index === 0"
+              :aria-label="`${field.label}左移`"
+              @click.stop="moveSortableItem('extra', field.key, index - 1)"
+              @keydown.stop
+            >←</button>
+            <button
+              type="button"
+              class="neye-field-move-button"
+              :disabled="index === orderedExtraFields.length - 1"
+              :aria-label="`${field.label}右移`"
+              @click.stop="moveSortableItem('extra', field.key, index + 1)"
+              @keydown.stop
+            >→</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <table
       class="neye-prescription-table"
       :class="{ 'neye-prescription-table--form': editable || isStyleMode }"
@@ -535,6 +774,106 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.neye-field-sorters {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.neye-field-sorters-hint {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+}
+.neye-field-sorter-section {
+  display: grid;
+  gap: 8px;
+}
+.neye-field-sorter-title {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  font-weight: 650;
+}
+.neye-field-sorter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.neye-field-sorter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 3px 5px 3px 7px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 7px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    opacity 180ms ease,
+    box-shadow 180ms ease;
+}
+.neye-field-sorter-item:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+.neye-field-sorter-item.is-hidden {
+  background: hsl(var(--muted) / 0.45);
+  color: hsl(var(--muted-foreground));
+}
+.neye-field-sorter-item.is-dragging {
+  opacity: 0.45;
+}
+.neye-field-sorter-item.is-drop-target {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.14);
+}
+.neye-field-drag-handle {
+  color: hsl(var(--muted-foreground));
+  cursor: grab;
+  font-size: 14px;
+  letter-spacing: -3px;
+  line-height: 1;
+  user-select: none;
+}
+.neye-field-drag-handle:active {
+  cursor: grabbing;
+}
+.neye-field-sorter-name {
+  min-width: 28px;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.neye-field-visibility,
+.neye-field-move-button {
+  height: 26px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 5px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  font-size: 12px;
+}
+.neye-field-visibility {
+  padding: 0 7px;
+}
+.neye-field-move-button {
+  width: 26px;
+  padding: 0;
+}
+.neye-field-visibility:hover,
+.neye-field-move-button:hover:not(:disabled) {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+}
+.neye-field-move-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
 .neye-optometry-quick-bar {
   position: fixed;
   z-index: 1080;

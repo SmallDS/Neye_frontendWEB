@@ -101,6 +101,39 @@ const routes: RouteRecordRaw[] = [
   },
   {
     meta: {
+      authority: ['admin', 'staff'],
+      icon: 'lucide:store',
+      order: 9,
+      title: '门店设置',
+    },
+    name: 'NEyeStoreSettings',
+    path: '/neye/store-settings',
+    redirect: '/neye/store-settings/optometry-style',
+    children: [
+      {
+        name: 'NEyeOptometryStyle',
+        path: 'optometry-style',
+        component: () => import('#/views/neye/system/optometry-style.vue'),
+        meta: {
+          icon: 'lucide:layout-template',
+          keepAlive: false,
+          title: '验光单样式',
+        },
+      },
+    ],
+  },
+  {
+    name: 'NEyeOptometryStyleLegacy',
+    path: '/neye/system/optometry-style',
+    redirect: '/neye/store-settings/optometry-style',
+    meta: {
+      authority: ['admin', 'staff'],
+      hideInMenu: true,
+      title: '验光单样式',
+    },
+  },
+  {
+    meta: {
       authority: ['admin'],
       icon: 'lucide:settings',
       order: 10,
@@ -181,16 +214,7 @@ const routes: RouteRecordRaw[] = [
           title: '微信小程序设置',
         },
       },
-      {
-        name: 'NEyeOptometryStyle',
-        path: 'optometry-style',
-        component: () => import('#/views/neye/system/optometry-style.vue'),
-        meta: {
-          icon: 'lucide:layout-template',
-          keepAlive: false,
-          title: '验光单样式',
-        },
-      },
+
       {
         name: 'NEyeTenantDetail',
         path: 'tenants/:id',

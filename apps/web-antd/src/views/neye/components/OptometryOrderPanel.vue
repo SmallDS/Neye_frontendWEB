@@ -142,12 +142,13 @@ async function load() {
   const version = ++loadVersion.value;
   loading.value = true;
   try {
-    const [loadedOrder, loadedStyle] = await Promise.all([
-      apiRequest<OptometryOrder>(`/optometry-orders/${props.orderId}`),
-      apiRequest<Partial<OptometryStyleConfig>>(
-        '/system-settings/optometry-style',
-      ),
-    ]);
+    const loadedOrder = await apiRequest<OptometryOrder>(
+      `/optometry-orders/${props.orderId}`,
+    );
+    const styleParams = new URLSearchParams({ tenantId: loadedOrder.tenantId });
+    const loadedStyle = await apiRequest<Partial<OptometryStyleConfig>>(
+      `/system-settings/optometry-style?${styleParams}`,
+    );
     if (version !== loadVersion.value) return;
     order.value = loadedOrder;
     optometryStyle.value = normalizeOptometryStyle(loadedStyle);
@@ -349,7 +350,7 @@ defineExpose({ confirmDiscardChanges, reload: load });
             <a-button
               type="link"
               class="neye-link-button"
-              @click="router.push('/neye/system/optometry-style')"
+              @click="router.push('/neye/store-settings/optometry-style')"
             >
               调整样式
             </a-button>

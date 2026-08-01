@@ -16,6 +16,10 @@ interface NeyeUserInfo {
   tenants?: CurrentUser['tenants'];
 }
 
+interface UseNeyeTenantScopeOptions {
+  forceTenantSelector?: boolean;
+}
+
 const SELECTED_TENANT_KEY = 'neye.selectedTenantId';
 
 const tenants = ref<Tenant[]>([]);
@@ -36,7 +40,7 @@ watch(
   { flush: 'sync' },
 );
 
-export function useNeyeTenantScope() {
+export function useNeyeTenantScope(options: UseNeyeTenantScopeOptions = {}) {
   const userStore = useUserStore();
   const { customPreferences } = usePreferences() as unknown as {
     customPreferences: Readonly<NeyeCustomPreferences>;
@@ -45,15 +49,26 @@ export function useNeyeTenantScope() {
   const currentUser = computed(() => (userStore.userInfo ?? {}) as NeyeUserInfo);
   const isAdmin = computed(() => currentUser.value.roles?.includes('admin') ?? false);
   const assignedTenants = computed(() => currentUser.value.tenants ?? []);
-  const isTenantSelectorVisible = computed(
+  const activeAssignedTenantCount = computed(
     () =>
-      customPreferences.tenantMode === 'multi' &&
-      (isAdmin.value || assignedTenants.value.filter((tenant) => tenant.status === 'active').length > 1),
+      assignedTenants.value.filter((tenant) => tenant.status === 'active')
+        .length,
+  );
+  const isTenantSelectorVisible = computed(() =>
+    shouldShowTenantSelector({
+      activeTenantCount: activeAssignedTenantCount.value,
+      forceTenantSelector: options.forceTenantSelector === true,
+      isAdmin: isAdmin.value,
+      tenantMode: customPreferences.tenantMode,
+    }),
   );
   const scopedTenantId = computed(() =>
-    isTenantSelectorVisible.value
-      ? selectedTenantId.value
-      : currentUser.value.tenantId || selectedTenantId.value,
+    resolveScopedTenantId({
+      currentTenantId: currentUser.value.tenantId,
+      forceTenantSelector: options.forceTenantSelector === true,
+      selectedTenantId: selectedTenantId.value,
+      selectorVisible: isTenantSelectorVisible.value,
+    }),
   );
   const isTenantReady = computed(() => Boolean(scopedTenantId.value) || isAdmin.value);
   const selectedTenant = computed(() => tenants.value.find((item) => item.id === scopedTenantId.value) ?? null);
@@ -66,7 +81,7 @@ export function useNeyeTenantScope() {
       })),
   );
 
-  async function loadTenants(force = false) {
+  async function loadTenants(force = false, autoSelect = true) {
     const userKey = String((userStore.userInfo as { userId?: string } | null)?.userId ?? '');
     if (!force && loadedForUser === userKey && tenants.value.length > 0) return;
 
@@ -82,7 +97,13 @@ export function useNeyeTenantScope() {
 
       const activeTenants = tenants.value.filter((tenant) => tenant.status === 'active');
       if (!activeTenants.some((tenant) => tenant.id === selectedTenantId.value)) {
-        selectedTenantId.value = currentUser.value.tenantId || activeTenants[0]?.id || '';
+        const currentTenantId = currentUser.value.tenantId;
+        const hasCurrentTenant = activeTenants.some((tenant) => tenant.id === currentTenantId);
+        selectedTenantId.value = hasCurrentTenant
+          ? currentTenantId ?? ''
+          : autoSelect
+            ? activeTenants[0]?.id ?? ''
+            : '';
       }
     } finally {
       tenantLoading.value = false;
@@ -100,6 +121,7 @@ export function useNeyeTenantScope() {
 
   return {
     appendTenantParam,
+    isAdmin,
     isTenantReady,
     isTenantSelectorVisible,
     loadTenants,
@@ -111,6 +133,39 @@ export function useNeyeTenantScope() {
     tenants,
     withTenantPayload,
   };
+}
+
+export function shouldShowTenantSelector({
+  activeTenantCount,
+  forceTenantSelector,
+  isAdmin,
+  tenantMode,
+}: {
+  activeTenantCount: number;
+  forceTenantSelector: boolean;
+  isAdmin: boolean;
+  tenantMode?: 'multi' | 'single';
+}) {
+  return (
+    (forceTenantSelector || tenantMode === 'multi') &&
+    (isAdmin || activeTenantCount > 1)
+  );
+}
+
+export function resolveScopedTenantId({
+  currentTenantId,
+  forceTenantSelector,
+  selectedTenantId,
+  selectorVisible,
+}: {
+  currentTenantId?: null | string;
+  forceTenantSelector: boolean;
+  selectedTenantId: string;
+  selectorVisible: boolean;
+}) {
+  return forceTenantSelector || selectorVisible
+    ? selectedTenantId
+    : currentTenantId || selectedTenantId;
 }
 
 function readStoredTenantId() {

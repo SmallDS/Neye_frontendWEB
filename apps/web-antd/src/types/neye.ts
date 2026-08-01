@@ -113,6 +113,8 @@ export interface TenantDetail extends Tenant {
 export interface OptometryStyleConfig {
   hiddenValueFields: string[];
   hiddenExtraFields: string[];
+  valueFieldOrder: string[];
+  extraFieldOrder: string[];
   showRemark: boolean;
 }
 export interface BatchDeleteResult {
@@ -174,7 +176,6 @@ export interface Customer {
   nameInitials?: null | string;
   phone?: null | string;
   gender: Gender;
-  age?: null | number;
   remark?: null | string;
   createdAt: string;
   optometryOrders?: OptometryOrder[];

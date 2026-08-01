@@ -204,7 +204,7 @@ watch(customerId, () => void load(), { immediate: true });
           <h1 class="neye-page-title">{{ customer?.name || '客户详情' }}</h1>
           <p class="neye-page-subtitle">
             {{ customer?.customerNo }} / {{ customer?.phone || '未填手机号' }} /
-            {{ genderText(customer?.gender) }} / {{ customer?.age ?? '-' }} 岁
+            {{ genderText(customer?.gender) }}
           </p>
         </div>
         <a-space wrap>
