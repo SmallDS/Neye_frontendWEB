@@ -2,8 +2,10 @@ name: Web CI
 
 on:
   push:
-    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -18,5 +20,10 @@ jobs:
           node-version: 22.18.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Verify OpenAPI generated types
+        run: |
+          pnpm generate:api
+          git diff --exit-code -- openapi apps/web-antd/src/api/generated
+      - run: pnpm exec vitest run --dom apps/web-antd/src/api/neye.test.ts apps/web-antd/src/composables/useNeyeTenantScope.test.ts apps/web-antd/src/views/neye/system/governance.test.ts
       - run: pnpm -F @neye/web-admin run typecheck
       - run: pnpm -F @neye/web-admin run build

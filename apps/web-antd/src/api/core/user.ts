@@ -21,24 +21,38 @@ export async function getCurrentUserApi(): Promise<CurrentUser> {
 
 export async function getUserInfoApi(): Promise<UserInfo> {
   const user = await getCurrentUserApi();
-  if (typeof window !== 'undefined' && user.role === 'staff') {
-    if (user.tenantId) {
-      window.localStorage.setItem('neye.selectedTenantId', user.tenantId);
-    } else {
-      window.localStorage.removeItem('neye.selectedTenantId');
-    }
+  const activeTenants = user.tenants.filter(
+    (tenant) => tenant.status === 'active',
+  );
+  const storedTenantId =
+    typeof window === 'undefined'
+      ? ''
+      : (window.localStorage.getItem('neye.selectedTenantId') ?? '');
+  const tenant =
+    activeTenants.find((item) => item.id === storedTenantId) ??
+    activeTenants[0];
+  const tenantId = tenant?.id ?? '';
+  if (typeof window !== 'undefined') {
+    if (tenantId)
+      window.localStorage.setItem('neye.selectedTenantId', tenantId);
+    else window.localStorage.removeItem('neye.selectedTenantId');
   }
   return {
     avatar: preferences.app.defaultAvatar,
-    desc: user.tenant?.name ?? '系统管理员',
-    homePath: user.role === 'admin' ? '/neye/system/tenants' : user.tenantId ? '/neye/customers' : '/profile',
+    desc: tenant?.name ?? '系统管理员',
+    homePath:
+      user.role === 'admin'
+        ? '/neye/system/tenants'
+        : tenantId
+          ? '/neye/customers'
+          : '/profile',
     realName: user.displayName,
     roles: [user.role],
     token: '',
     userId: user.id,
     username: user.username,
-    tenant: user.tenant,
-    tenantId: user.tenantId,
+    tenant,
+    tenantId,
     tenantIds: user.tenantIds,
     tenants: user.tenants,
   } as UserInfo;
@@ -51,7 +65,9 @@ export async function updateCurrentUserApi(data: UpdateCurrentUserParams) {
   });
 }
 
-export async function changeCurrentPasswordApi(data: ChangeCurrentPasswordParams) {
+export async function changeCurrentPasswordApi(
+  data: ChangeCurrentPasswordParams,
+) {
   return neyeApiRequest<{ message: string }>('/auth/password', {
     body: JSON.stringify(data),
     method: 'PATCH',

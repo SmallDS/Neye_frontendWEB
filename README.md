@@ -61,12 +61,12 @@ pnpm install
 pnpm -F @neye/web-admin run dev
 ```
 
-访问 `http://127.0.0.1:5666`。开发环境会把 `/api` 代理到本地后端。
+访问 `http://127.0.0.1:5666`。开发环境会把 `/api/v1` 代理到本地 Go 后端。
 
 ## 生产构建
 
 ```powershell
-$env:VITE_GLOB_API_URL='https://api.example.com/api'
+$env:VITE_GLOB_API_URL='https://api.example.com/api/v1'
 pnpm -F @neye/web-admin run build
 ```
 
@@ -83,7 +83,7 @@ docker run --rm -p 5666:80 neye-web
 
 ```powershell
 docker build -f apps/web-antd/Dockerfile `
-  --build-arg VITE_GLOB_API_URL=https://api.example.com/api `
+  --build-arg VITE_GLOB_API_URL=https://api.example.com/api/v1 `
   -t neye-web .
 ```
 

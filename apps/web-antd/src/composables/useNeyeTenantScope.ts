@@ -46,8 +46,12 @@ export function useNeyeTenantScope(options: UseNeyeTenantScopeOptions = {}) {
     customPreferences: Readonly<NeyeCustomPreferences>;
   };
 
-  const currentUser = computed(() => (userStore.userInfo ?? {}) as NeyeUserInfo);
-  const isAdmin = computed(() => currentUser.value.roles?.includes('admin') ?? false);
+  const currentUser = computed(
+    () => (userStore.userInfo ?? {}) as NeyeUserInfo,
+  );
+  const isAdmin = computed(
+    () => currentUser.value.roles?.includes('admin') ?? false,
+  );
   const assignedTenants = computed(() => currentUser.value.tenants ?? []);
   const activeAssignedTenantCount = computed(
     () =>
@@ -70,8 +74,13 @@ export function useNeyeTenantScope(options: UseNeyeTenantScopeOptions = {}) {
       selectorVisible: isTenantSelectorVisible.value,
     }),
   );
-  const isTenantReady = computed(() => Boolean(scopedTenantId.value) || isAdmin.value);
-  const selectedTenant = computed(() => tenants.value.find((item) => item.id === scopedTenantId.value) ?? null);
+  const isTenantReady = computed(
+    () => Boolean(scopedTenantId.value) || isAdmin.value,
+  );
+  const selectedTenant = computed(
+    () =>
+      tenants.value.find((item) => item.id === scopedTenantId.value) ?? null,
+  );
   const tenantOptions = computed(() =>
     tenants.value
       .filter((tenant) => tenant.status === 'active')
@@ -82,27 +91,37 @@ export function useNeyeTenantScope(options: UseNeyeTenantScopeOptions = {}) {
   );
 
   async function loadTenants(force = false, autoSelect = true) {
-    const userKey = String((userStore.userInfo as { userId?: string } | null)?.userId ?? '');
+    const userKey = String(
+      (userStore.userInfo as { userId?: string } | null)?.userId ?? '',
+    );
     if (!force && loadedForUser === userKey && tenants.value.length > 0) return;
 
     tenantLoading.value = true;
     try {
       if (isAdmin.value) {
-        const page = await apiRequest<PageResult<Tenant>>('/tenants?page=1&pageSize=100');
+        const page = await apiRequest<PageResult<Tenant>>(
+          '/tenants?page=1&pageSize=100',
+        );
         tenants.value = page.items;
       } else {
         tenants.value = assignedTenants.value;
       }
       loadedForUser = userKey;
 
-      const activeTenants = tenants.value.filter((tenant) => tenant.status === 'active');
-      if (!activeTenants.some((tenant) => tenant.id === selectedTenantId.value)) {
+      const activeTenants = tenants.value.filter(
+        (tenant) => tenant.status === 'active',
+      );
+      if (
+        !activeTenants.some((tenant) => tenant.id === selectedTenantId.value)
+      ) {
         const currentTenantId = currentUser.value.tenantId;
-        const hasCurrentTenant = activeTenants.some((tenant) => tenant.id === currentTenantId);
+        const hasCurrentTenant = activeTenants.some(
+          (tenant) => tenant.id === currentTenantId,
+        );
         selectedTenantId.value = hasCurrentTenant
-          ? currentTenantId ?? ''
+          ? (currentTenantId ?? '')
           : autoSelect
-            ? activeTenants[0]?.id ?? ''
+            ? (activeTenants[0]?.id ?? '')
             : '';
       }
     } finally {
@@ -111,12 +130,11 @@ export function useNeyeTenantScope(options: UseNeyeTenantScopeOptions = {}) {
   }
 
   function appendTenantParam(params: URLSearchParams) {
-    if (scopedTenantId.value) params.set('tenantId', scopedTenantId.value);
+    return params;
   }
 
-  function withTenantPayload<T extends Record<string, unknown>>(payload: T): T & { tenantId?: string } {
-    if (!scopedTenantId.value) return payload;
-    return { ...payload, tenantId: scopedTenantId.value };
+  function withTenantPayload<T extends Record<string, unknown>>(payload: T): T {
+    return payload;
   }
 
   return {

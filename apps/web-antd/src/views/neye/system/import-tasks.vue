@@ -237,7 +237,6 @@ async function load(page = query.value.page) {
     const params = new URLSearchParams({
       page: String(query.value.page),
       pageSize: String(query.value.pageSize),
-      tenantId: selectedTenantId.value,
     });
     if (query.value.status) params.set('status', query.value.status);
     result.value = await apiRequest<PageResult<ImportTask>>(
@@ -304,10 +303,11 @@ async function uploadPendingFile() {
   uploading.value = true;
   try {
     const formData = new FormData();
-    formData.append('tenantId', selectedTenantId.value);
     formData.append('file', pending.file);
-    formData.append('idempotencyKey', pending.idempotencyKey);
-    const task = await importTasksApi.createCustomerOptometry(formData);
+    const task = await importTasksApi.createCustomerOptometry(
+      formData,
+      pending.idempotencyKey,
+    );
     pendingUpload.value = undefined;
     uploadError.value = '';
     message.success('导入任务已创建');

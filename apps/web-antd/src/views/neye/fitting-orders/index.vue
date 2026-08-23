@@ -134,9 +134,6 @@ function batchRemoveFittingOrders() {
           method: 'POST',
           body: JSON.stringify({
             ids: selectedRowKeys.value,
-            ...(isTenantSelectorVisible.value && selectedTenantId.value
-              ? { tenantId: selectedTenantId.value }
-              : {}),
           }),
         },
       );

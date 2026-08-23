@@ -21,7 +21,10 @@ const formSchema = computed((): VbenFormSchema[] => [
     component: 'Input',
     componentProps: { maxlength: 80, placeholder: '请输入显示名称' },
     label: '显示名称',
-    rules: z.string().min(1, '请输入显示名称').max(80, '显示名称不能超过 80 个字符'),
+    rules: z
+      .string()
+      .min(1, '请输入显示名称')
+      .max(80, '显示名称不能超过 80 个字符'),
   },
   {
     fieldName: 'username',
@@ -45,17 +48,23 @@ const formSchema = computed((): VbenFormSchema[] => [
 
 async function loadProfile() {
   const user = await getCurrentUserApi();
+  const selectedTenantId = window.localStorage.getItem('neye.selectedTenantId');
+  const selectedTenant = user.tenants.find(
+    (tenant) => tenant.id === selectedTenantId && tenant.status === 'active',
+  );
   await profileBaseSettingRef.value?.getFormApi().setValues({
     displayName: user.displayName,
     roleName: user.role === 'admin' ? '系统管理员' : '店员',
-    tenantName: user.tenant?.name ?? '系统级账户',
+    tenantName: selectedTenant?.name ?? '系统级账户',
     username: user.username,
   });
 }
 
 async function handleSubmit(values: Recordable<any>) {
   try {
-    await updateCurrentUserApi({ displayName: String(values.displayName).trim() });
+    await updateCurrentUserApi({
+      displayName: String(values.displayName).trim(),
+    });
     await authStore.fetchUserInfo();
     message.success('账户信息已更新');
   } catch (error) {
@@ -75,7 +84,9 @@ onMounted(async () => {
 <template>
   <section class="max-w-2xl">
     <h2 class="mb-1 text-lg font-semibold">账户信息</h2>
-    <p class="mb-6 text-sm text-foreground/60">登录账号、角色和所属租户由管理员维护。</p>
+    <p class="mb-6 text-sm text-foreground/60">
+      登录账号、角色和所属租户由管理员维护。
+    </p>
     <ProfileBaseSetting
       ref="profileBaseSettingRef"
       :form-schema="formSchema"

@@ -23,7 +23,16 @@ import { useAppConfig } from '@vben/hooks';
 import { useAccessStore } from '@vben/stores';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
-const API_BASE_URL = apiURL || '/api';
+const API_BASE_URL = normalizeApiBase(apiURL);
+
+function normalizeApiBase(value?: string) {
+  const base = (value || '/api/v1').replace(/\/$/, '');
+  return base.endsWith('/api/v1')
+    ? base
+    : base.endsWith('/api')
+      ? `${base}/v1`
+      : `${base}/api/v1`;
+}
 
 export interface NeyeApiErrorData {
   code?: string;
@@ -131,7 +140,13 @@ export async function neyeApiRequest<T>(
 ): Promise<T> {
   const response = await neyeFetch(path, options);
   const body = await parseResponse(response);
-  if (!response.ok) throw createApiError(response.status, body);
+  if (!response.ok) {
+    const error = createApiError(response.status, body);
+    if (error.status === 403 && error.code === 'TENANT_FORBIDDEN') {
+      await refreshTenantMembership();
+    }
+    throw error;
+  }
   return body as T;
 }
 
@@ -185,9 +200,10 @@ export const importTasksApi = {
   getErrorReport(taskId: string) {
     return apiBlob(`/import-tasks/${taskId}/error-report`);
   },
-  createCustomerOptometry(payload: FormData) {
+  createCustomerOptometry(payload: FormData, idempotencyKey: string) {
     return apiRequest<ImportTask>('/import-tasks/customer-optometry', {
       body: payload,
+      headers: { 'Idempotency-Key': idempotencyKey },
       method: 'POST',
     });
   },
@@ -352,6 +368,20 @@ function createApiError(status: number, body: unknown) {
     normalized.details,
     normalized.requestId,
   );
+}
+
+async function refreshTenantMembership() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem('neye.selectedTenantId');
+  try {
+    const response = await neyeFetch('/auth/me');
+    const user = response.ok ? await parseResponse(response) : null;
+    window.dispatchEvent(
+      new CustomEvent('neye:tenant-invalid', { detail: user }),
+    );
+  } catch {
+    window.dispatchEvent(new CustomEvent('neye:tenant-invalid'));
+  }
 }
 
 function safeJson(text: string) {

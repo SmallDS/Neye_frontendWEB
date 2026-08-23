@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, h, reactive, ref, watch } from 'vue';
-import { DeleteOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons-vue';
+import {
+  DeleteOutlined,
+  PlusOutlined,
+  SaveOutlined,
+} from '@ant-design/icons-vue';
 import { Modal, message } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
 
@@ -108,7 +112,8 @@ const fittingColumns = [
   { key: 'action', title: '操作', width: 80 },
 ];
 const isDirty = computed(
-  () => baseline.value !== '' && baseline.value !== JSON.stringify(optometryForm),
+  () =>
+    baseline.value !== '' && baseline.value !== JSON.stringify(optometryForm),
 );
 const previewTotal = computed(() =>
   money(
@@ -145,9 +150,8 @@ async function load() {
     const loadedOrder = await apiRequest<OptometryOrder>(
       `/optometry-orders/${props.orderId}`,
     );
-    const styleParams = new URLSearchParams({ tenantId: loadedOrder.tenantId });
     const loadedStyle = await apiRequest<Partial<OptometryStyleConfig>>(
-      `/system-settings/optometry-style?${styleParams}`,
+      '/system-settings/optometry-style',
     );
     if (version !== loadVersion.value) return;
     order.value = loadedOrder;
@@ -194,10 +198,7 @@ function confirmDiscardChanges() {
   });
 }
 
-async function searchProducts(
-  category: ProductItemCategory,
-  keyword = '',
-) {
+async function searchProducts(category: ProductItemCategory, keyword = '') {
   const params = new URLSearchParams({
     category,
     page: '1',
@@ -214,26 +215,18 @@ async function searchProducts(
   }));
 }
 
-async function handleProductSearch(
-  section: FittingSection,
-  keyword: string,
-) {
+async function handleProductSearch(section: FittingSection, keyword: string) {
   await searchProducts(section.key, keyword.trim());
 }
 
-function handleProductInfoChange(
-  section: FittingSection,
-  value: unknown,
-) {
+function handleProductInfoChange(section: FittingSection, value: unknown) {
   const currentValue =
     typeof value === 'string'
       ? value
       : String(fittingForm[section.infoKey] ?? '');
   const selectedProductId = fittingForm[section.productKey];
   const selectedProduct = selectedProductId
-    ? productCaches[section.key].find(
-        (item) => item.id === selectedProductId,
-      )
+    ? productCaches[section.key].find((item) => item.id === selectedProductId)
     : undefined;
   if (selectedProduct?.name !== currentValue) {
     fittingForm[section.productKey] = undefined;
@@ -326,7 +319,9 @@ defineExpose({ confirmDiscardChanges, reload: load });
       <section class="neye-panel neye-optometry-panel">
         <div class="neye-order-panel-head">
           <div>
-            <h2 class="neye-section-title">{{ formatDate(order.optometryDate) }}</h2>
+            <h2 class="neye-section-title">
+              {{ formatDate(order.optometryDate) }}
+            </h2>
             <p class="neye-page-subtitle">{{ order.orderNo }}</p>
           </div>
           <a-space wrap>
@@ -338,8 +333,12 @@ defineExpose({ confirmDiscardChanges, reload: load });
             >
               保存验光单
             </a-button>
-            <a-button :icon="h(PlusOutlined)" @click="openCreate">新增配镜单</a-button>
-            <a-button danger :icon="h(DeleteOutlined)" @click="removeOrder">删除</a-button>
+            <a-button :icon="h(PlusOutlined)" @click="openCreate"
+              >新增配镜单</a-button
+            >
+            <a-button danger :icon="h(DeleteOutlined)" @click="removeOrder"
+              >删除</a-button
+            >
           </a-space>
         </div>
 
@@ -356,7 +355,11 @@ defineExpose({ confirmDiscardChanges, reload: load });
             </a-button>
           </div>
         </div>
-        <a-form layout="vertical" :model="optometryForm" @finish="saveOptometry">
+        <a-form
+          layout="vertical"
+          :model="optometryForm"
+          @finish="saveOptometry"
+        >
           <OptometryPrescriptionTable
             :model-value="optometryForm"
             editable
@@ -371,7 +374,9 @@ defineExpose({ confirmDiscardChanges, reload: load });
         <div class="neye-section-head">
           <div>
             <h3 class="neye-section-title">关联配镜单</h3>
-            <p class="neye-page-subtitle">共 {{ order.fittingOrders?.length || 0 }} 张</p>
+            <p class="neye-page-subtitle">
+              共 {{ order.fittingOrders?.length || 0 }} 张
+            </p>
           </div>
           <a-button :icon="h(PlusOutlined)" @click="openCreate">新增</a-button>
         </div>
@@ -425,7 +430,9 @@ defineExpose({ confirmDiscardChanges, reload: load });
             allow-clear
             :filter-option="false"
             :options="productOptions[section.key]"
-            @change="(value: unknown) => handleProductInfoChange(section, value)"
+            @change="
+              (value: unknown) => handleProductInfoChange(section, value)
+            "
             @search="(value: string) => handleProductSearch(section, value)"
             @select="(value: unknown) => selectProduct(section, String(value))"
           />
@@ -441,7 +448,9 @@ defineExpose({ confirmDiscardChanges, reload: load });
         配镜金额：<span class="neye-money">{{ previewTotal }}</span>
       </div>
       <a-space>
-        <a-button type="primary" html-type="submit" :loading="creatingFitting">保存</a-button>
+        <a-button type="primary" html-type="submit" :loading="creatingFitting"
+          >保存</a-button
+        >
         <a-button @click="createOpen = false">取消</a-button>
       </a-space>
     </a-form>

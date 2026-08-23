@@ -76,9 +76,8 @@ async function load() {
 
   loading.value = true;
   try {
-    const params = new URLSearchParams({ tenantId });
     const loadedStyle = await apiRequest<Partial<OptometryStyleConfig>>(
-      `/system-settings/optometry-style?${params}`,
+      '/system-settings/optometry-style',
     );
     if (version === loadVersion && tenantId === scopedTenantId.value) {
       styleConfig.value = normalizeOptometryStyle(loadedStyle);
@@ -146,7 +145,7 @@ async function save() {
     const savedStyle = await apiRequest<OptometryStyleConfig>(
       '/system-settings/optometry-style',
       {
-        body: JSON.stringify({ tenantId, value: styleConfig.value }),
+        body: JSON.stringify({ value: styleConfig.value }),
         method: 'PATCH',
       },
     );

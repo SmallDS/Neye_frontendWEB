@@ -49,12 +49,11 @@ export interface PageResult<T> {
 
 export interface CurrentUser {
   id: string;
-  tenantId?: null | string;
   tenantIds: string[];
   username: string;
   displayName: string;
   role: UserRole;
-  tenant?: { code: string; id: string; name: string; status: TenantStatus };
+  status: UserStatus;
   tenants: Array<Tenant & { assignedAt: string }>;
   wechatBound: boolean;
 }

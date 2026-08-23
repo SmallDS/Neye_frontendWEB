@@ -15,7 +15,6 @@ type WechatEnvVersion = 'develop' | 'release' | 'trial';
 interface WechatAuthSettings {
   enabled: boolean;
   appId: string;
-  appSecret: string;
   envVersion: WechatEnvVersion;
   secretConfigured: boolean;
 }
@@ -59,7 +58,7 @@ const pickupForm = reactive<WechatPickupNotificationSettings>({
 function applySettings(settings: WechatAuthSettings) {
   form.enabled = settings.enabled;
   form.appId = settings.appId;
-  form.appSecret = settings.appSecret;
+  form.appSecret = '';
   form.envVersion = settings.envVersion;
   form.secretConfigured = settings.secretConfigured;
   form.clearSecret = false;
@@ -191,7 +190,7 @@ onMounted(() => void load());
               v-model:value="form.appSecret"
               :disabled="form.clearSecret"
               :maxlength="128"
-              placeholder="请输入小程序 AppSecret"
+              placeholder="留空则保留已配置的 AppSecret"
               autocomplete="off"
               @input="handleSecretInput"
             />
@@ -199,6 +198,7 @@ onMounted(() => void load());
               <a-tag :color="form.secretConfigured ? 'green' : 'default'">{{
                 form.secretConfigured ? '已配置' : '尚未配置'
               }}</a-tag>
+              <span>接口不会回显密钥；留空保存将保留现有值。</span>
             </div>
           </a-form-item>
           <a-form-item v-if="form.secretConfigured"

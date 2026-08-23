@@ -12,7 +12,7 @@ import {
 } from './neye';
 
 vi.mock('@vben/hooks', () => ({
-  useAppConfig: () => ({ apiURL: '/api' }),
+  useAppConfig: () => ({ apiURL: '/api/v1' }),
 }));
 vi.mock('@vben/stores', () => ({
   useAccessStore: () => ({
@@ -131,13 +131,20 @@ describe('neye API utilities', () => {
       batchSize: 750,
     });
     const form = new FormData();
-    form.append('tenantId', 'tenant-1');
     await expect(
-      importTasksApi.createCustomerOptometry(form),
+      importTasksApi.createCustomerOptometry(
+        form,
+        '123e4567-e89b-12d3-a456-426614174000',
+      ),
     ).resolves.toMatchObject({ id: 'task-1' });
-    expect(
-      new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has('Content-Type'),
-    ).toBe(false);
+    const headers = new Headers(fetchMock.mock.calls[1]?.[1]?.headers);
+    expect(headers.has('Content-Type')).toBe(false);
+    expect(headers.get('Idempotency-Key')).toBe(
+      '123e4567-e89b-12d3-a456-426614174000',
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      '/api/v1/import-tasks/customer-optometry',
+    );
     fetchMock.mockRestore();
   });
 });
