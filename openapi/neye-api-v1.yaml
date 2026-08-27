@@ -238,13 +238,14 @@ components:
       properties: {id: {type: string, format: uuid}, code: {type: string}, name: {type: string}, status: {type: string, enum: [active, disabled]}, assignedAt: {type: string, format: date-time}}
     CurrentUser:
       type: object
-      required: [id, username, displayName, role, status, tenantIds, tenants, wechatBound]
+      required: [id, username, displayName, role, status, mustChangePassword, tenantIds, tenants, wechatBound]
       properties:
         id: {type: string, format: uuid}
         username: {type: string}
         displayName: {type: string}
         role: {type: string, enum: [admin, staff]}
         status: {type: string, enum: [active, disabled]}
+        mustChangePassword: {type: boolean}
         tenantIds: {type: array, items: {type: string, format: uuid}}
         tenants: {type: array, items: {$ref: '#/components/schemas/TenantSummary'}}
         wechatBound: {type: boolean}

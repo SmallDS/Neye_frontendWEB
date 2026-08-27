@@ -54,6 +54,7 @@ export interface CurrentUser {
   displayName: string;
   role: UserRole;
   status: UserStatus;
+  mustChangePassword: boolean;
   tenants: Array<Tenant & { assignedAt: string }>;
   wechatBound: boolean;
 }

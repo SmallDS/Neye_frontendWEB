@@ -1130,6 +1130,7 @@ export interface components {
             role: "admin" | "staff";
             /** @enum {string} */
             status: "active" | "disabled";
+            mustChangePassword: boolean;
             tenantIds: string[];
             tenants: components["schemas"]["TenantSummary"][];
             wechatBound: boolean;

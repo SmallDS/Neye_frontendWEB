@@ -49,6 +49,11 @@ function setupAccessGuard(router: Router) {
     const accessStore = useAccessStore();
     const userStore = useUserStore();
     const authStore = useAuthStore();
+    const passwordChangeRoute = {
+      path: '/profile',
+      query: { firstLogin: '1', tab: 'password' },
+      replace: true,
+    };
 
     // 基本路由，这些路由不需要进入权限拦截
     if (coreRouteNames.includes(to.name as string)) {
@@ -85,6 +90,13 @@ function setupAccessGuard(router: Router) {
       return to;
     }
 
+    const cachedUser = userStore.userInfo as
+      | ({ mustChangePassword?: boolean } & typeof userStore.userInfo)
+      | null;
+    if (cachedUser?.mustChangePassword && to.path !== '/profile') {
+      return passwordChangeRoute;
+    }
+
     // 是否已经生成过动态路由
     if (accessStore.isAccessChecked) {
       return true;
@@ -109,6 +121,13 @@ function setupAccessGuard(router: Router) {
           replace: true,
         };
       }
+    }
+    if (
+      (userInfo as typeof userInfo & { mustChangePassword?: boolean })
+        .mustChangePassword &&
+      to.path !== '/profile'
+    ) {
+      return passwordChangeRoute;
     }
     const userRoles = userInfo.roles ?? [];
 

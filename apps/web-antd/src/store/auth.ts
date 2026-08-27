@@ -50,6 +50,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (accessStore.loginExpired) {
         accessStore.setLoginExpired(false);
+      } else if (
+        (userInfo as UserInfo & { mustChangePassword?: boolean })
+          .mustChangePassword
+      ) {
+        await router.replace({
+          path: '/profile',
+          query: { firstLogin: '1', tab: 'password' },
+        });
       } else {
         onSuccess
           ? await onSuccess()
@@ -58,7 +66,16 @@ export const useAuthStore = defineStore('auth', () => {
             );
       }
 
-      if (userInfo.realName) {
+      if (
+        (userInfo as UserInfo & { mustChangePassword?: boolean })
+          .mustChangePassword
+      ) {
+        notification.warning({
+          description: '当前正在使用初始密码，请先设置至少 8 位的新密码。',
+          duration: 0,
+          message: '首次登录需要修改密码',
+        });
+      } else if (userInfo.realName) {
         notification.success({
           description: `${$t('authentication.loginSuccessDesc')}:${userInfo.realName}`,
           duration: 3,

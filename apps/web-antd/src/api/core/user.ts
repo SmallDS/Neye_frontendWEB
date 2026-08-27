@@ -51,6 +51,7 @@ export async function getUserInfoApi(): Promise<UserInfo> {
     token: '',
     userId: user.id,
     username: user.username,
+    mustChangePassword: user.mustChangePassword,
     tenant,
     tenantId,
     tenantIds: user.tenantIds,
