@@ -28,6 +28,12 @@ const DEFAULT_CONFIG = {
     'tailwindcss',
   ],
   ignoreWorkspaces: ['internal/lint-configs/*', 'scripts/*'],
+  workspaces: {
+    'internal/tsconfig': {
+      // Referenced by the `types` entries in the shared tsconfig files.
+      ignoreDependencies: ['@vben/types', 'vite'],
+    },
+  },
 };
 
 interface KnipDependency {

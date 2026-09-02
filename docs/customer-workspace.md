@@ -15,9 +15,9 @@
 
 ## 全局搜索与快速录入
 
-`apps/web-antd/src/layouts/customer-search.vue` 在页头提供客户搜索，支持姓名、完整拼音/拼音首字母、手机号和客户编号。`Ctrl/Cmd + K` 打开搜索框，方向键循环选择，Enter 进入客户工作区，Escape 关闭。
+`apps/web-merchant/src/layouts/customer-search.vue` 在页头提供客户搜索，支持姓名、完整拼音/拼音首字母、手机号和客户编号。`Ctrl/Cmd + K` 打开搜索框，方向键循环选择，Enter 进入客户工作区，Escape 关闭。
 
-`apps/web-antd/src/views/neye/optometry-quick-input.ts` 定义验光字段的常用值、粗调/细调步长、数值精度和上下限。验光表格通过 Tab 横向、Enter 纵向移动，越过边界时自动换行，适合连续键盘录入。
+`apps/web-merchant/src/views/neye/optometry-quick-input.ts` 定义验光字段的常用值、粗调/细调步长、数值精度和上下限。验光表格通过 Tab 横向、Enter 纵向移动，越过边界时自动换行，适合连续键盘录入。
 
 ## 路由约定
 
@@ -89,7 +89,7 @@ GET    /system-settings/optometry-style?tenantId=:orderTenantId
 ## 验证
 
 ```powershell
-pnpm exec vitest run --dom apps/web-antd/src/views/neye/customer-workspace.test.ts apps/web-antd/src/layouts/customer-search.test.ts apps/web-antd/src/views/neye/optometry-quick-input.test.ts
-pnpm -F @neye/web-admin run typecheck
-pnpm -F @neye/web-admin run build
+pnpm exec vitest run --dom apps/web-merchant/src/views/neye/customer-workspace.test.ts apps/web-merchant/src/layouts/customer-search.test.ts apps/web-merchant/src/views/neye/optometry-quick-input.test.ts
+pnpm -F @neye/web-merchant run typecheck
+pnpm -F @neye/web-merchant run build
 ```

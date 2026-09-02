@@ -22,5 +22,8 @@ export default defineConfig({
     '.npmrc',
     '*-lock.yaml',
     'skills-lock.json',
+    'packages/neye-api/src/generated',
+    'packages/neye-api/openapi.yaml',
+    'openapi',
   ],
 });

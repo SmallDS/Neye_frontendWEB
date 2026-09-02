@@ -1,0 +1,21 @@
+{
+  "name": "@neye/api",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./generated": {
+      "types": "./src/generated/neye-api-v1.ts",
+      "default": "./src/generated/neye-api-v1.ts"
+    }
+  },
+  "dependencies": {
+    "@vben/hooks": "workspace:*",
+    "@vben/stores": "workspace:*"
+  }
+}

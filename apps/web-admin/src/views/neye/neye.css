@@ -1,0 +1,416 @@
+.neye-page {
+  padding: 16px;
+}
+
+.neye-page-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.neye-page-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  color: hsl(var(--foreground));
+}
+
+.neye-page-subtitle {
+  margin: 4px 0 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.neye-section-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+}
+
+.neye-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.neye-tenant-select {
+  width: 280px;
+}
+
+.neye-panel {
+  padding: 16px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.neye-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.neye-optometry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.neye-stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.neye-stat-box {
+  min-width: 0;
+  padding: 12px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.neye-stat-label {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.neye-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 18px;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+
+.neye-stat-note {
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
+
+.neye-link-button {
+  padding: 0;
+}
+
+.neye-money {
+  font-weight: 650;
+  color: #b45309;
+}
+
+.neye-total-line {
+  margin: -4px 0 14px;
+  font-size: 15px;
+}
+
+.neye-empty-text {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.neye-prescription-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.neye-prescription-table {
+  width: 100%;
+  min-width: min(100%, 760px);
+  font-size: 13px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 1px solid hsl(var(--border));
+}
+
+.neye-prescription-table th,
+.neye-prescription-table td {
+  height: 42px;
+  padding: 8px 10px;
+  vertical-align: middle;
+  text-align: center;
+  white-space: nowrap;
+  border: 1px solid hsl(var(--border));
+}
+
+.neye-prescription-table thead th {
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 60%);
+}
+
+.neye-prescription-eye-head {
+  width: 120px;
+}
+
+.neye-prescription-purpose {
+  width: 62px;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 45%);
+}
+
+.neye-prescription-eye {
+  width: 58px;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  background: hsl(var(--card));
+}
+
+.neye-prescription-extra {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(86px, max-content) minmax(90px, 1fr)
+  );
+  min-width: min(100%, 760px);
+  margin-top: -1px;
+  border: 1px solid hsl(var(--border));
+  border-top: 0;
+}
+
+.neye-prescription-extra-label,
+.neye-prescription-extra-value {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px;
+  border-right: 1px solid hsl(var(--border));
+}
+
+.neye-prescription-extra-label {
+  justify-content: center;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  background: hsl(var(--muted) / 45%);
+}
+
+.neye-prescription-extra-value {
+  color: hsl(var(--foreground));
+}
+
+.neye-prescription-extra-value:last-child {
+  border-right: 0;
+}
+
+.neye-prescription-remark {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  min-width: min(100%, 760px);
+  border: 1px solid hsl(var(--border));
+  border-top: 0;
+}
+
+.neye-prescription-remark-label,
+.neye-prescription-remark-value {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px;
+}
+
+.neye-prescription-remark-label {
+  justify-content: center;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 45%);
+  border-right: 1px solid hsl(var(--border));
+}
+
+.neye-prescription-remark-value {
+  color: hsl(var(--foreground));
+  white-space: pre-wrap;
+}
+
+.neye-panel + .neye-panel {
+  margin-top: 14px;
+}
+
+.neye-section-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.neye-section-head .neye-section-title {
+  margin-bottom: 0;
+}
+
+.neye-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.neye-detail-grid div {
+  min-width: 0;
+}
+
+.neye-detail-grid span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.neye-detail-grid strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 650;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+
+@media (max-width: 780px) {
+  .neye-page-head {
+    display: block;
+  }
+
+  .neye-form-grid,
+  .neye-optometry-grid,
+  .neye-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .neye-tenant-select {
+    width: 100%;
+  }
+}
+
+.neye-prescription-table--form th,
+.neye-prescription-table--form td {
+  padding: 5px;
+}
+
+.neye-prescription-cell-input .ant-input,
+.neye-prescription-cell-input .ant-input-number,
+.neye-prescription-extra--form .ant-input,
+.neye-prescription-remark--form .ant-input {
+  width: 100%;
+}
+
+.neye-prescription-cell-input .ant-input,
+.neye-prescription-cell-input .ant-input-number-input,
+.neye-prescription-extra--form .ant-input {
+  text-align: center;
+}
+
+.neye-prescription-extra--form .neye-prescription-extra-value,
+.neye-prescription-remark--form .neye-prescription-remark-value {
+  padding: 5px;
+}
+
+.neye-prescription-remark--form .neye-prescription-remark-value {
+  align-items: stretch;
+}
+
+.neye-import-progress-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.neye-import-progress-bar {
+  width: 96px;
+}
+
+.neye-import-progress-panel {
+  padding: 12px;
+  margin-bottom: 14px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.neye-import-progress-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.neye-import-log {
+  max-height: 260px;
+  padding: 10px 12px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: hsl(var(--foreground));
+  white-space: pre-wrap;
+  background: hsl(var(--muted) / 35%);
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.neye-prescription-head-main {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.neye-prescription-head-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: hsl(var(--muted-foreground));
+}
+
+.neye-prescription-value {
+  display: block;
+  min-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: hsl(var(--foreground));
+}
+
+.neye-prescription-cell-hidden {
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 35%);
+}
+
+.neye-prescription-empty {
+  margin-top: 10px;
+}
+
+.neye-prescription-extra-value .neye-prescription-value {
+  font-weight: 650;
+}
+
+.neye-prescription-table td:empty::after,
+.neye-prescription-extra-value:empty::after {
+  content: '';
+}
+
+.neye-prescription-column-check {
+  display: block;
+  margin-top: 6px;
+}
+
+.neye-prescription-column-hidden {
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 35%) !important;
+}
+
+.neye-prescription-table
+  th:not(.neye-prescription-eye-head):not(.neye-prescription-purpose):not(
+    .neye-prescription-eye
+  ),
+.neye-prescription-table td {
+  width: auto;
+}

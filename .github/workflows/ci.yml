@@ -23,7 +23,14 @@ jobs:
       - name: Verify OpenAPI generated types
         run: |
           pnpm generate:api
-          git diff --exit-code -- openapi apps/web-antd/src/api/generated
-      - run: pnpm exec vitest run --dom apps/web-antd/src/api/neye.test.ts apps/web-antd/src/composables/useNeyeTenantScope.test.ts apps/web-antd/src/views/neye/system/governance.test.ts
+          git diff --exit-code -- openapi packages/neye-api/src/generated
+      - name: Run all web application tests
+        run: pnpm exec vitest run --dom apps/web-admin/src apps/web-merchant/src packages/neye-api/src
       - run: pnpm -F @neye/web-admin run typecheck
+      - run: pnpm -F @neye/web-merchant run typecheck
       - run: pnpm -F @neye/web-admin run build
+      - run: pnpm -F @neye/web-merchant run build
+      - name: Build production Docker images
+        run: |
+          docker build -f apps/web-admin/Dockerfile -t neye-web-admin:${{ github.sha }} .
+          docker build -f apps/web-merchant/Dockerfile -t neye-web-merchant:${{ github.sha }} .

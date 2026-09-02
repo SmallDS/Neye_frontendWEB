@@ -28,13 +28,11 @@
     }
   },
   "dependencies": {
-    "@changesets/git": "catalog:",
     "@manypkg/get-packages": "catalog:",
     "chalk": "catalog:",
     "consola": "catalog:",
     "dayjs": "catalog:",
     "execa": "catalog:",
-    "find-up": "catalog:",
     "ora": "catalog:",
     "pkg-types": "catalog:",
     "rimraf": "catalog:"

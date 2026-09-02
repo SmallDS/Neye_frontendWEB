@@ -2,4 +2,10 @@ import { oxlintConfig } from '@vben/oxlint-config';
 
 import { defineConfig } from 'oxlint';
 
-export default defineConfig(oxlintConfig);
+export default defineConfig({
+  ...oxlintConfig,
+  ignorePatterns: [
+    ...(oxlintConfig.ignorePatterns ?? []),
+    'packages/neye-api/src/generated/**',
+  ],
+});

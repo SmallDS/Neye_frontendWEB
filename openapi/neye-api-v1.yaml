@@ -19,6 +19,9 @@ tags:
   - {name: Imports}
   - {name: Settings}
   - {name: Events}
+  - {name: Commerce}
+  - {name: Inventory}
+  - {name: Payments}
 paths:
   /health:
     get: {operationId: getHealth, tags: [Health], security: [], responses: {'200': {$ref: '#/components/responses/Success'}}}
@@ -31,6 +34,7 @@ paths:
       operationId: login
       tags: [Auth]
       security: []
+      parameters: [{$ref: '#/components/parameters/PortalType'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/LoginRequest'}}}}
       responses: {'200': {description: Authenticated, content: {application/json: {schema: {$ref: '#/components/schemas/LoginResult'}}}}, '401': {$ref: '#/components/responses/Error'}}
   /auth/me:
@@ -70,7 +74,7 @@ paths:
   /tenants/{id}/users:
     parameters: [{$ref: '#/components/parameters/ID'}]
     get: {operationId: listTenantUsers, tags: [Tenants], responses: {'200': {$ref: '#/components/responses/Success'}}}
-    post: {operationId: createTenantUser, tags: [Tenants], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+    post: {operationId: createTenantUser, tags: [Tenants], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}, '201': {$ref: '#/components/responses/Success'}}}
   /tenants/{id}/users/{userId}:
     parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/UserID'}]
     patch: {operationId: updateTenantUser, tags: [Tenants], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
@@ -128,7 +132,7 @@ paths:
   /fitting-orders/{id}:
     parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}]
     get: {operationId: getFittingOrder, tags: [Fittings], responses: {'200': {$ref: '#/components/responses/Success'}}}
-    patch: {operationId: updateFittingOrder, tags: [Fittings], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+    patch: {operationId: updateFittingOrder, tags: [Fittings], parameters: [{$ref: '#/components/parameters/Idempotency'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
     delete: {operationId: deleteFittingOrder, tags: [Fittings], responses: {'204': {description: Deleted}}}
   /fitting-orders/{id}/pickup-subscription-qr:
     parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}]
@@ -206,10 +210,92 @@ paths:
   /admin/event-logs/{id}:
     parameters: [{$ref: '#/components/parameters/ID'}]
     get: {operationId: getEventLog, tags: [Events], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/settings:
+    get: {operationId: getCommerceSettings, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    patch: {operationId: updateCommerceSettings, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Tenant'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/payment-status:
+    get: {operationId: getCommercePaymentStatus, tags: [Payments], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/skus:
+    get: {operationId: listTenantSkus, tags: [Inventory], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {operationId: createTenantSku, tags: [Inventory], parameters: [{$ref: '#/components/parameters/Tenant'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /commerce/skus/{id}:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}]
+    patch: {operationId: updateTenantSku, tags: [Inventory], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/inventory:
+    get: {operationId: listInventoryBalances, tags: [Inventory], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/inventory/movements:
+    get: {operationId: listInventoryMovements, tags: [Inventory], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/inventory/documents:
+    get: {operationId: listInventoryDocuments, tags: [Inventory], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {operationId: createInventoryDocument, tags: [Inventory], parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /commerce/inventory/transfers/{id}/receive:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: receiveInventoryTransfer, tags: [Inventory], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales:
+    get: {operationId: listSalesOrders, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {operationId: createSalesOrder, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /commerce/fitting-checkout-queue:
+    get: {operationId: listFittingCheckoutQueue, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Tenant'}, {name: state, in: query, schema: {type: string, enum: [pending, paid_for_delivery, refund_due, all], default: pending}}, {name: keyword, in: query, schema: {type: string}}, {$ref: '#/components/parameters/Page'}, {$ref: '#/components/parameters/PageSize'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/fitting-orders/{id}/sale:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: createFittingSale, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}, '201': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales/{id}:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}]
+    get: {operationId: getSalesOrder, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    patch: {operationId: updateSalesOrder, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Idempotency'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales/{id}/confirm:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: confirmSalesOrder, tags: [Commerce], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales/{id}/cancel:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: cancelSalesOrder, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales/{id}/complete:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: completeSalesOrder, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales/{id}/receipt:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}]
+    get: {operationId: getSalesReceipt, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/sales/{id}/payments:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: createPaymentIntent, tags: [Payments], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /commerce/payments:
+    get: {operationId: listPaymentTransactions, tags: [Payments], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/payment-intents/{id}:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}]
+    get: {operationId: getPaymentIntent, tags: [Payments], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/payment-intents/{id}/close:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: closePaymentIntent, tags: [Payments], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /commerce/payments/{id}/refunds:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Idempotency'}]
+    post: {operationId: refundPayment, tags: [Payments], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /commerce/reports/daily:
+    get: {operationId: getDailyCommerceReport, tags: [Commerce], parameters: [{$ref: '#/components/parameters/Tenant'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /admin/commerce/permissions:
+    get: {operationId: listCommercePermissions, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /admin/tenants/{id}/commerce:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    get: {operationId: getAdminTenantCommerce, tags: [Commerce], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    patch: {operationId: updateAdminTenantCommerce, tags: [Commerce], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /admin/tenants/{id}/users/{userId}/commerce-permissions:
+    parameters: [{$ref: '#/components/parameters/ID'}, {$ref: '#/components/parameters/UserID'}]
+    put: {operationId: assignCommercePermissions, tags: [Commerce], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /admin/payment-accounts:
+    get: {operationId: listPaymentAccounts, tags: [Payments], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {operationId: createPaymentAccount, tags: [Payments], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /admin/payment-accounts/{id}/retire:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    post: {operationId: retirePaymentAccount, tags: [Payments], responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /admin/settlements:
+    get: {operationId: listSettlements, tags: [Payments], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {operationId: createSettlement, tags: [Payments], parameters: [{$ref: '#/components/parameters/Idempotency'}], requestBody: {$ref: '#/components/requestBodies/Generic'}, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /admin/settlements/eligible:
+    get: {operationId: listSettlementEligible, tags: [Payments], parameters: [{name: tenantId, in: query, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Success'}}}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
   parameters:
+    PortalType: {name: X-Portal-Type, in: header, required: false, schema: {type: string, enum: [admin, merchant], default: merchant}}
     ID: {name: id, in: path, required: true, schema: {type: string, format: uuid}}
     UserID: {name: userId, in: path, required: true, schema: {type: string, format: uuid}}
     CustomerID: {name: customerId, in: path, required: true, schema: {type: string, format: uuid}}
@@ -234,8 +320,8 @@ components:
       properties: {username: {type: string, minLength: 1, maxLength: 80}, password: {type: string, minLength: 1, maxLength: 256}}
     TenantSummary:
       type: object
-      required: [id, code, name, status]
-      properties: {id: {type: string, format: uuid}, code: {type: string}, name: {type: string}, status: {type: string, enum: [active, disabled]}, assignedAt: {type: string, format: date-time}}
+      required: [id, code, name, status, assignedAt, permissions]
+      properties: {id: {type: string, format: uuid}, code: {type: string}, name: {type: string}, status: {type: string, enum: [active, disabled]}, assignedAt: {type: string, format: date-time}, permissions: {type: array, items: {type: string}}}
     CurrentUser:
       type: object
       required: [id, username, displayName, role, status, mustChangePassword, tenantIds, tenants, wechatBound]

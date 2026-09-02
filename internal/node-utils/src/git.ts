@@ -2,7 +2,10 @@ import path from 'node:path';
 
 import { execa } from 'execa';
 
-export * from '@changesets/git';
+async function add(files: string | string[], cwd = process.cwd()) {
+  const paths = Array.isArray(files) ? files : [files];
+  await execa('git', ['add', '--', ...paths], { cwd });
+}
 
 /**
  * 获取暂存区文件
@@ -37,4 +40,4 @@ async function getStagedFiles(): Promise<string[]> {
   }
 }
 
-export { getStagedFiles };
+export { add, getStagedFiles };

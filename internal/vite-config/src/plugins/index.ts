@@ -28,7 +28,6 @@ import { viteLicensePlugin } from './license';
 import { viteNitroMockPlugin } from './nitro-mock';
 import { vitePrintPlugin } from './print';
 import { viteTailwindReferencePlugin } from './tailwind-reference';
-import { viteVxeTableImportsPlugin } from './vxe-table';
 
 /**
  * 获取条件成立的 vite 插件
@@ -118,7 +117,6 @@ async function loadApplicationPlugins(
     printInfoMap,
     pwa,
     pwaOptions,
-    vxeTableLazyImport,
     ...commonOptions
   } = options;
 
@@ -142,12 +140,6 @@ async function loadApplicationPlugins(
       condition: print,
       plugins: async () => {
         return [await vitePrintPlugin({ infoMap: printInfoMap })];
-      },
-    },
-    {
-      condition: vxeTableLazyImport,
-      plugins: async () => {
-        return [await viteVxeTableImportsPlugin()];
       },
     },
     {
@@ -257,5 +249,4 @@ export {
   viteDtsPlugin,
   viteHtmlPlugin,
   viteVisualizerPlugin,
-  viteVxeTableImportsPlugin,
 };

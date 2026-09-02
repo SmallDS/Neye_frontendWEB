@@ -1,17 +1,12 @@
 # NEye Web
 
-NEye 眼镜店客户管理系统 Web 管理端，基于 Vue 3、Vben Admin、Ant Design Vue 和 TypeScript。
+NEye Web 由独立的管理员后台和商家后台组成，基于 Vue 3、Vben Admin、Ant Design Vue 和 TypeScript，共用同一套 Go API。
 
-## 功能范围
+## 应用边界
 
-- 管理概览、运行状态、租户、账号和系统配置
-- 客户管理、全局客户搜索与客户工作区
-- 验光单、验光快速录入和按门店管理验光单样式（支持拖动、按钮和键盘调整字段顺序）
-- 配镜单管理（在客户工作区内查看和编辑）
-- 全局商品字典
-- 独立账号管理与账号多租户分配
-- 大批量客户验光数据导入、校验、发布、取消和错误报告下载
-- 个人资料与密码修改
+- 管理员后台：管理总览、商家、账号与门店分配、商品字典、数据导入、运行状态、微信配置和日志。
+- 商家后台：客户搜索与客户工作区、验光单、配镜单、配镜优先收银、临时零售、库存、取镜通知、门店切换和验光单样式。收银首页默认显示待收款配镜单，结清后进入待取镜交付，临时零售保留在次要入口。
+- 两个后台独立登录、构建和部署；管理员账号不能调用商家业务接口，商家账号不能调用平台接口。
 
 ## 管理后台
 
@@ -44,10 +39,12 @@ NEye 眼镜店客户管理系统 Web 管理端，基于 Vue 3、Vben Admin、Ant
 ## 目录
 
 ```text
-apps/web-antd/        NEye Web 应用
+apps/web-admin/       管理员后台
+apps/web-merchant/    商家后台
+packages/neye-api/    共享 OpenAPI 类型与 API 客户端
 packages/             应用依赖的 Vben 基础包
 internal/             构建、TypeScript 与代码规范配置
-scripts/              Vben 工作区辅助脚本
+scripts/              构建、检查和工作区辅助脚本
 ```
 
 仓库已移除 Vben 演示页、其他 UI 框架应用、Mock 服务、官方文档站和发布工作流。`packages` 与 `internal` 是当前应用的直接或传递依赖，不应随意删除。
@@ -58,39 +55,48 @@ scripts/              Vben 工作区辅助脚本
 
 ```powershell
 pnpm install
-pnpm -F @neye/web-admin run dev
+pnpm dev:admin
+pnpm dev:merchant
 ```
 
-访问 `http://127.0.0.1:5666`。开发环境会把 `/api/v1` 代理到本地 Go 后端。
+管理员后台访问 `http://127.0.0.1:5666`，商家后台访问 `http://127.0.0.1:5667`。开发环境都会把 `/api/v1` 代理到本地 Go 后端。
 
 ## 生产构建
 
 ```powershell
 $env:VITE_GLOB_API_URL='https://api.example.com/api/v1'
-pnpm -F @neye/web-admin run build
+pnpm build:web
 ```
 
-产物位于 `apps/web-antd/dist`。生产环境默认使用 hash 路由；如切换为 history 路由，静态托管平台必须将非静态、非 `/api/*` 请求回退到 `index.html`。
+产物分别位于 `apps/web-admin/dist` 和 `apps/web-merchant/dist`。生产环境默认使用 hash 路由；如切换为 history 路由，静态托管平台必须将非静态、非 `/api/*` 请求回退到 `index.html`。
 
 ## Docker
 
 ```powershell
-docker build -f apps/web-antd/Dockerfile -t neye-web .
-docker run --rm -p 5666:80 neye-web
+pnpm build:docker
+docker run --rm -p 5666:80 neye-web-admin:local
+docker run --rm -p 5667:80 neye-web-merchant:local
 ```
 
 构建远程 API 版本：
 
 ```powershell
-docker build -f apps/web-antd/Dockerfile `
+docker build -f apps/web-admin/Dockerfile `
   --build-arg VITE_GLOB_API_URL=https://api.example.com/api/v1 `
-  -t neye-web .
+  -t neye-web-admin:local .
+docker build -f apps/web-merchant/Dockerfile `
+  --build-arg VITE_GLOB_API_URL=https://api.example.com/api/v1 `
+  -t neye-web-merchant:local .
 ```
+
+默认镜像通过 Nginx 将 `/api/*` 转发到同一 Docker 网络中的 `api:3000`。独立运行前端容器时应提供名为 `api` 的后端容器或网络别名。
 
 ## 验证
 
 ```powershell
-pnpm exec vitest run --dom apps/web-antd/src/api/neye.test.ts apps/web-antd/src/views/neye/system/governance.test.ts apps/web-antd/src/layouts/customer-search.test.ts apps/web-antd/src/views/neye/optometry-quick-input.test.ts
+pnpm lint
 pnpm -F @neye/web-admin run typecheck
-pnpm -F @neye/web-admin run build
+pnpm -F @neye/web-merchant run typecheck
+pnpm test:unit
+pnpm build:web
 ```
